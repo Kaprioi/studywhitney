@@ -10,6 +10,17 @@ Add your classes, drop in your syllabus and notes, and StudyWhitney keeps everyt
 
 ![Whitney reminding you about a test](docs/desktop-whitney.png)
 
+## Why I built this
+
+Keeping track of college classes means juggling a syllabus PDF, a calendar, notes in one app and old exams in another, and finding out about a test too late. I wanted one place that keeps all of it organized and actually helps me study, and a cat on my screen is a lot harder to ignore than a calendar alert.
+
+It also let me build something real from start to finish, beyond class assignments:
+
+- **A complete Mac app**, from the design to an installable app with its own icon
+- **Working with real files:** reading PDFs and pulling out the dates and sections that matter
+- **Using AI in a product:** practice exams that come back in a fixed format the app can show and print
+- **Designing for people:** confirming before adding anything, undo on every delete, and Whitney nudging you without getting in the way
+
 ## Meet Whitney
 
 Whitney sits just above your Dock while you work. She blinks, wanders around, and naps when you step away. When a test or assignment is coming up, she pops up to let you know and offers to quiz you. You can drag her anywhere on your screen, or hide her whenever you want.
