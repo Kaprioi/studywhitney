@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Buddy System Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<style>
+/* Layout: single reading column; diagrams and tables scroll on their own */
+:root {
+  --bg: #f6f7f4; --surface: #ffffff; --fg: #1d2420; --muted: #5d6a63;
+  --line: #d9ded9; --accent: #2f6f5e; --accent-soft: #e2efe9; --warn: #9a5b12;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Source Sans 3", -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141917; --surface: #1c2320; --fg: #e4ebe7; --muted: #9aa9a1;
+  --line: #2f3a35; --accent: #7cc4ad; --accent-soft: #22322c; --warn: #e0a65c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141917; --surface: #1c2320; --fg: #e4ebe7; --muted: #9aa9a1;
+  --line: #2f3a35; --accent: #7cc4ad; --accent-soft: #22322c; --warn: #e0a65c; color-scheme: dark }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 var(--body); padding: 48px 16px 80px }
+main { max-width: 780px; margin: 0 auto; display: grid; gap: 44px }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0 }
+h1 { font-size: 2.4rem; line-height: 1.15 }
+h2 { font-size: 1.5rem; margin-bottom: 12px }
+h3 { font-size: 1.05rem; margin: 20px 0 6px }
+p { margin: 0 0 12px } ul, ol { margin: 0 0 12px; padding-left: 22px }
+.lede { color: var(--muted); font-size: 1.1rem; margin-top: 10px }
+.eyebrow { font: 600 .75rem var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--accent) }
+code { font: .86em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px }
+table { border-collapse: collapse; width: 100%; font-size: .93rem }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em }
+tr:last-child td { border-bottom: 0 }
+.note { border-left: 3px solid var(--warn); padding: 4px 14px; color: var(--fg) }
+.phase { display: grid; grid-template-columns: 84px 1fr; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line) }
+.phase:last-child { border-bottom: 0 }
+.phase b { font-family: var(--mono); font-weight: 400; color: var(--accent) }
+.phase div { min-width: 0 }
+pre.mermaid { background: transparent; margin: 0; text-align: center }
+@media (max-width: 520px) { .phase { grid-template-columns: 1fr } h1 { font-size: 1.9rem } }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">System design · draft 1 · Oct 8, 2026</div>
+  <h1>Study Buddy</h1>
+  <p class="lede">An AI study agent that knows your classes. Give it your courses, textbooks, syllabus and lecture notes, and it organizes your work, quizzes you, writes practice exams, and texts your phone before every test.</p>
+</header>
+
+<section>
+  <h2>What it has to do</h2>
+  <ol>
+    <li><b>Know each class.</b> Course name, professor, textbook, syllabus, and which chapters have been covered so far.</li>
+    <li><b>Take in material.</b> Lecture notes (typed, PDF, slides, or photos of handwritten pages) and textbook chapters.</li>
+    <li><b>Help you review.</b> Chat that answers from your own material with citations, plus summaries, flashcards and quizzes.</li>
+    <li><b>Make practice exams</b> scoped to what the real exam covers, then grade them and point to the weak topics.</li>
+    <li><b>Track dates.</b> Read exam and due dates from the syllabus, and let you add others by chat ("midterm moved to the 24th").</li>
+    <li><b>Remind you</b> with push notifications on your phone, plus a study plan counting down to each exam.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Architecture</h2>
+  <p>One mobile app talks to one backend. The backend has three jobs: run the agent, process uploads, and fire reminders on time.</p>
+  <div class="scroll">
+<pre class="mermaid">
+flowchart LR
+  App["Phone app<br/>(Expo / React Native)"] -->|HTTPS| API["API server"]
+  API --> Agent["Study agent<br/>(Claude + tools)"]
+  API --> Q[["Job queue"]]
+  Q --> Ingest["Ingestion worker<br/>OCR · chunk · embed"]
+  Ingest --> Files[("File storage<br/>PDFs, photos")]
+  Ingest --> DB[("Postgres + pgvector")]
+  Agent --> DB
+  Sched["Scheduler<br/>(runs every minute)"] --> DB
+  Sched --> Push["Expo Push<br/>→ APNs / FCM"]
+  Push --> App
+</pre>
+  </div>
+</section>
+
+<section>
+  <h2>Components</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Piece</th><th>Job</th><th>Suggested tech</th></tr>
+    <tr><td>Phone app</td><td>Courses, chat, uploads (camera + files), quizzes, calendar, notification permission</td><td>Expo (React Native), one codebase for iOS and Android</td></tr>
+    <tr><td>API server</td><td>Auth, CRUD for courses and events, streams agent replies</td><td>Node (Hono or Fastify) or Python (FastAPI)</td></tr>
+    <tr><td>Study agent</td><td>Tool-using Claude loop; every answer grounded in retrieved chunks</td><td>Claude API with tool use; <code>claude-sonnet-5-5</code> for exams and chat, <code>claude-haiku-4-5</code> for tagging and bulk work</td></tr>
+    <tr><td>Ingestion worker</td><td>Extract text, read handwriting, split into chunks, tag each chunk with course/chapter/lecture, embed</td><td>PDF text extraction; Claude vision for photos and slides; embeddings into pgvector</td></tr>
+    <tr><td>Database</td><td>All structured data and vectors in one place</td><td>Postgres + pgvector (Supabase or Neon is fine for the MVP)</td></tr>
+    <tr><td>File storage</td><td>Original uploads</td><td>S3 or Cloudflare R2</td></tr>
+    <tr><td>Scheduler</td><td>Finds due reminders, sends pushes, marks them sent</td><td>Cron job or a worker loop reading the <code>reminders</code> table</td></tr>
+    <tr><td>Push</td><td>Delivers to the phone</td><td>Expo Push Service (handles APNs and FCM for you)</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Data model</h2>
+  <div class="scroll">
+<pre class="mermaid">
+erDiagram
+  USER ||--o{ COURSE : takes
+  USER ||--o{ DEVICE : "push tokens"
+  COURSE ||--o{ TOPIC : "syllabus units"
+  COURSE ||--o{ DOCUMENT : "notes, textbook, slides"
+  DOCUMENT ||--o{ CHUNK : "split into"
+  CHUNK }o--o{ TOPIC : "tagged with"
+  COURSE ||--o{ EVENT : "exams, due dates"
+  EVENT }o--o{ TOPIC : covers
+  EVENT ||--o{ REMINDER : schedules
+  COURSE ||--o{ QUIZ : "practice sets"
+  QUIZ ||--o{ ATTEMPT : "your answers"
+</pre>
+  </div>
+  <p>The link that makes it smart is <code>EVENT covers TOPIC</code>. When the agent builds a practice midterm, it only pulls chunks tagged with the topics that midterm covers. <code>TOPIC</code> also stores <code>covered_on</code>, so "what we've covered" is a date filter.</p>
+</section>
+
+<section>
+  <h2>The agent</h2>
+  <p>A single agent with a small, sharp set of tools. The system prompt carries your course list, upcoming events and today's date, so it can answer "what should I study tonight?" without a tool call.</p>
+  <div class="scroll">
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>search_material</code></td><td>Vector + keyword search, filtered by course, topic or date range. Returns chunks with source and page.</td></tr>
+    <tr><td><code>list_courses</code> / <code>get_course</code></td><td>Courses, textbook, syllabus topics, what's been covered</td></tr>
+    <tr><td><code>mark_covered</code></td><td>"We did chapter 6 today" → updates topic coverage</td></tr>
+    <tr><td><code>create_event</code> / <code>update_event</code></td><td>Add or move an exam or deadline; reminders are regenerated automatically</td></tr>
+    <tr><td><code>generate_quiz</code></td><td>Flashcards, multiple choice, short answer or full practice exam from selected topics</td></tr>
+    <tr><td><code>grade_attempt</code></td><td>Grades answers against a rubric, records per-topic scores</td></tr>
+    <tr><td><code>get_weak_topics</code></td><td>Lowest-scoring topics across recent attempts, used for the study plan</td></tr>
+  </table>
+  </div>
+  <p class="note">Rule for every answer: cite the lecture or page it came from. If nothing relevant is in your material, the agent says so before falling back to general knowledge. This is the main defense against wrong answers.</p>
+</section>
+
+<section>
+  <h2>Key flows</h2>
+
+  <h3>1 · Adding a class</h3>
+  <p>Upload the syllabus PDF. The ingestion worker extracts the schedule, and the agent proposes topics and exam dates for you to confirm. Confirmed exams create reminders right away.</p>
+
+  <h3>2 · Uploading lecture notes</h3>
+  <div class="scroll">
+<pre class="mermaid">
+sequenceDiagram
+  participant P as Phone
+  participant A as API
+  participant W as Ingestion worker
+  participant D as Database
+  P->>A: upload photo/PDF + course
+  A->>D: save document (status: processing)
+  A-->>W: enqueue job
+  W->>W: OCR / extract text, split into chunks
+  W->>W: tag chunks with topics (Haiku), embed
+  W->>D: save chunks, mark topics covered
+  W-->>P: push "Lecture 7 notes are ready to review"
+</pre>
+  </div>
+
+  <h3>3 · Practice exam</h3>
+  <ol>
+    <li>You ask for a practice midterm. The agent looks up the event and its topics.</li>
+    <li>It retrieves chunks for each topic, weighted toward topics with more lecture time and toward your weak spots.</li>
+    <li>It writes questions in the style of past exams if you uploaded any, each with an answer key and source.</li>
+    <li>You answer in the app. <code>grade_attempt</code> scores it and updates per-topic mastery.</li>
+  </ol>
+
+  <h3>4 · Reminders</h3>
+  <p>When an exam is created, the scheduler writes rows into <code>reminders</code>: 7 days, 3 days, 1 day, and the morning of. Each one carries a short plan ("Tonight: chapters 5–6 flashcards, 20 min"). A daily review nudge comes from spaced repetition on flashcards you got wrong. Moving an exam deletes unsent reminders and writes new ones.</p>
+  <p>You also get a calendar feed (<code>.ics</code> link) so dates show up in Apple or Google Calendar.</p>
+</section>
+
+<section>
+  <h2>Decisions and risks</h2>
+  <ul>
+    <li><b>Textbooks are big.</b> Ingest chapter by chapter as they're assigned, not the whole book on day one. That keeps costs down and search focused.</li>
+    <li><b>Copyright.</b> Students upload their own copies for their own study. Material is private to the account and never shared between users.</li>
+    <li><b>Handwriting.</b> Claude vision reads it well, but the app shows the extracted text so you can fix mistakes.</li>
+    <li><b>Cost control.</b> Use prompt caching on the course context, Haiku for bulk tagging, and cache generated quizzes.</li>
+    <li><b>Notifications on iOS</b> need a real Apple developer account for production push. For a quick personal MVP, <code>ntfy.sh</code> or a Telegram bot sends phone alerts with no app store step.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Build order</h2>
+  <div class="scroll">
+    <div class="phase"><b>Phase 1</b><div>Courses, events, reminders and push. Small, and useful on day one.</div></div>
+    <div class="phase"><b>Phase 2</b><div>Upload pipeline and grounded chat with citations.</div></div>
+    <div class="phase"><b>Phase 3</b><div>Quizzes, practice exams, grading and weak-topic tracking.</div></div>
+    <div class="phase"><b>Phase 4</b><div>Syllabus auto-import, study plans, spaced repetition, calendar feed.</div></div>
+  </div>
+  <p style="margin-top:12px">These phases split cleanly into parallel tasks (mobile app, API, ingestion worker, scheduler), which is the kind of work firstmate can hand to a crew of agents, each in its own Herdr tab and git worktree.</p>
+</section>
+
+</main>
+<script>
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light'
+    || document.documentElement.dataset.theme === 'dark';
+  mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict' });
+</script>
+</body>
+</html>

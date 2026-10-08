@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Whitney</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; -webkit-user-select: none; user-select: none;
+  font-family: "Pixelify Sans", "Courier New", monospace }
+#pet { position: absolute; bottom: 0; left: 0; width: 128px; height: 136px; cursor: grab }
+#pet.dragging { cursor: grabbing }
+#pet canvas { width: 128px; height: 136px; image-rendering: pixelated; display: block }
+#bubble { position: absolute; bottom: 150px; left: 0; width: max-content; max-width: 290px; min-width: 180px; background: #fffdf8; color: #1a1d24;
+  font-size: 15px; line-height: 1.3; padding: 10px 12px; box-shadow: 0 0 0 3px #1b1b1f, 5px 5px 0 3px rgba(0,0,0,.22); --tail: 40px }
+#bubble[hidden] { display: none }
+#bubble.below::after { bottom: auto; top: -14px; box-shadow: 3px 0 0 #1b1b1f, 0 -3px 0 #1b1b1f, -3px 0 0 #1b1b1f; clip-path: polygon(50% 0, 100% 100%, 0 100%) }
+#bubble::after { content: ""; position: absolute; left: calc(var(--tail) - 7px); bottom: -14px; width: 14px; height: 14px; background: #fffdf8;
+  box-shadow: 3px 0 0 #1b1b1f, 0 3px 0 #1b1b1f, -3px 0 0 #1b1b1f; clip-path: polygon(0 0, 100% 0, 50% 100%) }
+.who { display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #b23a5c; font-size: 12px; letter-spacing: .06em; margin-bottom: 2px }
+.x { border: 0; background: none; font: 600 16px "Pixelify Sans", monospace; color: #1b1b1f; cursor: pointer; padding: 0 2px; line-height: 1 }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px }
+.acts button { font: 600 13px "Pixelify Sans", monospace; border: 0; background: #1b1b1f; color: #fffdf8; padding: 5px 9px; cursor: pointer; box-shadow: 3px 3px 0 #b23a5c }
+.acts button.alt { background: #fffdf8; color: #1b1b1f; box-shadow: inset 0 0 0 2px #1b1b1f }
+.acts button:hover { transform: translate(-1px, -1px) }
+.fx { position: absolute; font: 600 18px "Pixelify Sans", monospace; color: #e0446a; animation: up 1.3s ease-out forwards; pointer-events: none }
+.fx.z { color: #6b7385 }
+@keyframes up { to { opacity: 0; transform: translateY(-48px) } }
+</style>
+</head>
+<body>
+<div id="bubble" hidden>
+  <div class="who"><span>WHITNEY</span><button class="x" id="close" aria-label="Close">×</button></div>
+  <div id="say"></div>
+  <div class="acts" id="acts"></div>
+</div>
+<div id="pet"><canvas id="cat" width="32" height="34"></canvas></div>
+<script>
+/*SPRITE*/
+function paint(ctx, g, oy, flip) {
+  ctx.clearRect(0, 0, 32, 34);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = g[y][x]; if (!c) continue;
+    ctx.fillStyle = PAL[c]; ctx.fillRect(flip ? W - 1 - x : x, y + oy, 1, 1);
+  }
+}
+const post = m => { try { window.webkit.messageHandlers.pet.postMessage(m) } catch (e) {} };
+const $ = id => document.getElementById(id);
+const pet = $('pet'), ctx = $('cat').getContext('2d'), bubble = $('bubble'), say = $('say'), acts = $('acts');
+const S = { x: Math.max(20, innerWidth - 260), y: 0, floor: 0, home: null, placed: false, dir: 1, mood: 'idle', target: null, t: 0, last: Date.now(), talking: false,
+  drag: null, snoozeUntil: 0, data: null, alerted: {} };
+try { S.alerted = JSON.parse(localStorage.getItem('alerted') || '{}') } catch (e) {}
+const saveAlerted = () => { try { localStorage.setItem('alerted', JSON.stringify(S.alerted)) } catch (e) {} };
+const clampX = x => Math.max(4, Math.min(innerWidth - 132, x));
+const clampY = y => Math.max(0, Math.min(innerHeight - 140, y));
+try { const p = JSON.parse(localStorage.getItem('pos') || 'null'); if (p) { S.x = clampX(p.x); S.y = clampY(p.y); S.placed = true } } catch (e) {}
+const savePos = () => { try { localStorage.setItem('pos', JSON.stringify({ x: S.x, y: S.y })) } catch (e) {} };
+// Called by the app with the height of the Dock's top edge
+window.setFloor = f => { S.floor = f; if (!S.placed) S.y = f; S.y = clampY(S.y) };
+
+function burst(ch, n, cls = '') {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span'); s.className = 'fx ' + cls; s.textContent = ch;
+    s.style.left = (S.x + 26 + Math.random() * 76) + 'px'; s.style.bottom = (S.y + 110 + Math.random() * 16) + 'px';
+    document.body.appendChild(s); setTimeout(() => s.remove(), 1400);
+  }
+}
+
+let typeTimer;
+function speak(text, buttons = [], mood = 'idle') {
+  S.mood = mood; S.target = null; S.last = Date.now();
+  bubble.hidden = false; acts.innerHTML = ''; clearInterval(typeTimer);
+  let i = 0; S.talking = true; say.textContent = '';
+  typeTimer = setInterval(() => {
+    i += 2; say.textContent = text.slice(0, i);
+    if (i >= text.length) {
+      clearInterval(typeTimer); S.talking = false;
+      buttons.forEach(([label, fn, alt]) => {
+        const b = document.createElement('button'); b.textContent = label; if (alt) b.className = 'alt';
+        b.addEventListener('click', fn); acts.appendChild(b);
+      });
+    }
+  }, 26);
+}
+function closeBubble() { bubble.hidden = true; clearInterval(typeTimer); S.talking = false; if (S.mood !== 'sleep') S.mood = 'idle'; S.last = Date.now() }
+$('close').addEventListener('click', closeBubble);
+const openApp = (code, ask) => { closeBubble(); post({ type: 'open', code: code || '', ask: ask || '' }) };
+
+/* ---------- data + reminders ---------- */
+const today = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d };
+const daysTo = s => Math.round((new Date(s + 'T12:00') - today()) / 864e5);
+const dayName = s => new Date(s + 'T12:00').toLocaleDateString('en-US', { weekday: 'long' });
+window.petData = d => { S.data = typeof d === 'string' ? JSON.parse(d) : d; checkReminders() };
+
+function nextUp() {
+  if (!S.data) return null;
+  return S.data.flatMap(c => c.tests.filter(t => daysTo(t.date) >= 0).map(t => ({ c, t, d: daysTo(t.date) }))).sort((a, b) => a.d - b.d)[0] || null;
+}
+function checkReminders() {
+  if (!S.data || Date.now() < S.snoozeUntil || !bubble.hidden || S.drag) return;
+  const items = [];
+  S.data.forEach(c => {
+    c.tests.forEach(t => { const d = daysTo(t.date); if (d >= 0 && d <= 7) items.push({ key: `t|${c.code}|${t.name}|${t.date}|${d}`, d, c, t }) });
+    c.hw.forEach(h => { if (h.done || !h.due) return; const d = daysTo(h.due); if (d === 0 || d === 1) items.push({ key: `h|${c.code}|${h.name}|${h.due}|${d}`, d, c, h }) });
+  });
+  const it = items.filter(x => !S.alerted[x.key]).sort((a, b) => a.d - b.d)[0];
+  if (!it) return;
+  S.alerted[it.key] = Date.now(); saveAlerted();
+  const snooze = ['Snooze 1 hr', () => { S.snoozeUntil = Date.now() + 3600e3; speak('Okay. Napping for an hour. Mrrp.', [], 'sleep'); setTimeout(closeBubble, 2600) }, true];
+  if (it.t) {
+    const { c, t, d } = it;
+    const when = d === 0 ? `is TODAY${t.time ? ' at ' + t.time : ''}` : d === 1 ? `is TOMORROW${t.time ? ' at ' + t.time : ''}` : `is in ${d} days (${dayName(t.date)})`;
+    speak(`${d <= 1 ? '!! ' : 'Psst. '}${c.code} ${t.name} ${when}.${t.covers ? ` It covers ${t.covers}.` : ''} ${d === 0 ? 'Quick warmup?' : 'Want to practice?'}`,
+      [['Quiz me', () => openApp(c.code, 'Quiz me')], ['My scores', () => openApp(c.code, 'scores')], snooze], 'alert');
+  } else {
+    const { c, h, d } = it;
+    speak(`${c.code}: ${h.name} is due ${d === 0 ? 'TODAY' : 'tomorrow'}.`, [['Help me', () => openApp(c.code, `Help me with ${h.name}`)], ['Got it', closeBubble, true]], 'alert');
+  }
+}
+setTimeout(() => post({ type: 'getData' }), 2500);
+setInterval(() => post({ type: 'getData' }), 60e3);
+
+/* ---------- click, pet, drag ---------- */
+function onClick() {
+  S.last = Date.now();
+  if (S.mood === 'sleep') { speak('Mrrp? Oh, hi. I was resting my eyes.', [], 'happy'); setTimeout(() => { if (!S.talking) summary() }, 2200); return }
+  burst('♥', 3); S.mood = 'happy';
+  summary();
+}
+function goAway() {
+  speak('Okay, I\'ll get out of your way. Bring me back from the menu bar or the app.', [], 'sleep');
+  setTimeout(() => { closeBubble(); post({ type: 'hide' }) }, 1800);
+}
+pet.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  speak('Want me to leave your screen?', [['Hide me', goAway], ['Stay', closeBubble, true]], 'idle');
+});
+function summary() {
+  const n = nextUp();
+  const hw = S.data ? S.data.reduce((s, c) => s + c.hw.filter(h => !h.done).length, 0) : 0;
+  const text = !S.data ? 'Open StudyWhitney and add your classes, and I\'ll keep an eye on your tests.'
+    : n ? `Next up: ${n.c.code} ${n.t.name}, ${n.d === 0 ? 'today' : n.d === 1 ? 'tomorrow' : `in ${n.d} days`}. ${hw ? `${hw} homework open.` : 'No homework open.'}`
+    : `No tests coming up. ${hw ? `${hw} homework open.` : 'Nothing due. Nap time?'}`;
+  speak(text, [
+    ['Quiz me', () => openApp(n?.c.code, 'Quiz me')],
+    ['My scores', () => openApp(n?.c.code, 'scores')],
+    ['Open app', () => openApp(n?.c.code, '')],
+    ['Hide me', goAway, true],
+  ], 'happy');
+}
+pet.addEventListener('mousedown', e => {
+  S.drag = { sx: e.screenX, sy: e.screenY, x0: S.x, y0: S.y, moved: false }; pet.classList.add('dragging'); post({ type: 'drag', on: true }); e.preventDefault();
+});
+addEventListener('mousemove', e => {
+  if (!S.drag) return;
+  const dx = e.screenX - S.drag.sx, dy = e.screenY - S.drag.sy; if (Math.abs(dx) > 3 || Math.abs(dy) > 3) S.drag.moved = true;
+  if (S.drag.moved) { S.x = clampX(S.drag.x0 + dx); S.y = clampY(S.drag.y0 - dy); S.dir = dx < 0 ? -1 : 1; S.target = null; if (S.mood === 'walk' || S.mood === 'sleep') S.mood = 'idle' }
+});
+addEventListener('mouseup', () => {
+  if (!S.drag) return;
+  const moved = S.drag.moved; S.drag = null; pet.classList.remove('dragging'); post({ type: 'drag', on: false });
+  if (!moved) onClick(); else { if (Math.abs(S.y - S.floor) < 24) S.y = S.floor; S.placed = true; S.home = S.x; savePos(); S.last = Date.now(); if (!bubble.hidden) return; S.mood = 'happy'; setTimeout(() => { if (S.mood === 'happy' && bubble.hidden) S.mood = 'idle' }, 900) }
+});
+
+/* ---------- life loop ---------- */
+let lastRects = '';
+function loop() {
+  const t = ++S.t;
+  if (S.mood === 'walk' && S.target != null) {
+    const diff = S.target - S.x;
+    if (Math.abs(diff) <= 3) { S.x = S.target; S.target = null; S.mood = 'idle' } else { S.x += 3 * Math.sign(diff); S.dir = Math.sign(diff) }
+  }
+  if (S.mood === 'idle' && bubble.hidden && !S.drag && t % 12 === 0 && Math.random() < .07) { if (S.home == null) S.home = S.x; S.target = clampX(Math.round(S.home - 150 + Math.random() * 300)); S.mood = 'walk' }
+  if ((S.mood === 'idle' || S.mood === 'walk') && bubble.hidden && !S.drag && Date.now() - S.last > 4 * 60e3) { S.mood = 'sleep'; S.target = null }
+  if (S.mood === 'sleep' && t % 20 === 0) burst('z', 1, 'z');
+  if (S.mood === 'happy' && bubble.hidden && !S.drag && Date.now() - S.last > 2500) S.mood = 'idle';
+
+  const blink = t % 45 > 42, mouth = S.talking && t % 4 < 2 ? 'open' : 'closed';
+  let f, oy;
+  switch (S.mood) {
+    case 'sleep': f = { eyes: 'closed', mouth: 'closed', tail: 0, alert: false }; oy = t % 24 < 12 ? 0 : 1; break;
+    case 'happy': f = { eyes: 'happy', mouth, tail: t * .35, alert: false }; oy = t % 16 < 8 ? 0 : 1; break;
+    case 'alert': f = { eyes: blink ? 'blink' : 'open', mouth: S.talking ? mouth : (t % 10 < 3 ? 'open' : 'closed'), tail: t * .9, alert: true }; oy = t % 6 < 3 ? 0 : 1; break;
+    case 'walk': f = { eyes: 'open', mouth: 'closed', tail: t * .6, alert: false }; oy = t % 4 < 2 ? 0 : 1; break;
+    default: f = { eyes: blink ? 'blink' : 'open', mouth, tail: t * .35, alert: false }; oy = t % 16 < 8 ? 0 : 1;
+  }
+  paint(ctx, buildCat(f), oy, S.dir < 0 && S.mood === 'walk');
+  pet.style.left = S.x + 'px'; pet.style.bottom = S.y + 'px';
+
+  if (!bubble.hidden) {
+    const bw = bubble.offsetWidth, bh = bubble.offsetHeight, cx = S.x + 64;
+    const below = S.y + 150 + bh > innerHeight - 6;
+    bubble.classList.toggle('below', below);
+    bubble.style.bottom = (below ? Math.max(4, S.y - bh - 14) : S.y + 150) + 'px';
+    const left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw * .65));
+    bubble.style.left = left + 'px';
+    bubble.style.setProperty('--tail', Math.max(16, Math.min(bw - 16, cx - left)) + 'px');
+  }
+  const rs = [pet.getBoundingClientRect()]; if (!bubble.hidden) rs.push(bubble.getBoundingClientRect());
+  const rects = rs.map(r => [Math.round(r.left) - 4, Math.round(r.top) - 4, Math.round(r.width) + 8, Math.round(r.height) + 8]);
+  const key = JSON.stringify(rects); if (key !== lastRects) { lastRects = key; post({ type: 'rects', rects }) }
+  if (t % 120 === 0) checkReminders();
+}
+setInterval(loop, 1000 / 12); loop();
+addEventListener('resize', () => { S.x = clampX(S.x); S.y = clampY(S.y) });
+</script>
+</body>
+</html>

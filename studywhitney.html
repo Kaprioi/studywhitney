@@ -1,0 +1,1834 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StudyWhitney</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<style>
+/* Layout: live mockup stage up top (desktop + phone side by side), then a single reading column for the design */
+:root {
+  --bg: #eef1f4; --surface: #ffffff; --fg: #1a1d24; --muted: #5b6372; --line: #d5dae2;
+  --accent: #d9577a; --accent-soft: #fbe6ec; --ok: #2f8a5b; --warn: #b8741a;
+  --wall-a: #9fc3d9; --wall-b: #d8c7e8; --win: rgba(255,255,255,.82); --bubble: #fffdf8; --bubble-ink: #1a1d24;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", sans-serif;
+  --pixel: "Pixelify Sans", "Courier New", monospace;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12141a; --surface: #1b1e26; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c313d;
+  --accent: #f08aa6; --accent-soft: #3a2230; --ok: #6cd39b; --warn: #f0b45e;
+  --wall-a: #23374a; --wall-b: #3b2d4d; --win: rgba(30,34,44,.85); --bubble: #fffdf8; --bubble-ink: #1a1d24; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12141a; --surface: #1b1e26; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c313d;
+  --accent: #f08aa6; --accent-soft: #3a2230; --ok: #6cd39b; --warn: #f0b45e;
+  --wall-a: #23374a; --wall-b: #3b2d4d; --win: rgba(30,34,44,.85); --bubble: #fffdf8; --bubble-ink: #1a1d24; color-scheme: dark }
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 var(--body); padding-inline: 16px; padding-block: 40px 80px }
+.wrap { max-width: 1060px; margin: 0 auto }
+.col { max-width: 780px; margin: 0 auto; display: grid; gap: 48px }
+h1, h2 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -.01em }
+h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05 }
+h2 { font-size: 1.6rem; margin-bottom: 12px }
+h3 { font-size: 1.05rem; margin: 22px 0 6px }
+p { margin: 0 0 12px } ul, ol { margin: 0 0 12px; padding-left: 22px } li { margin-bottom: 4px }
+.eyebrow { font: 600 .75rem var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--accent) }
+.lede { color: var(--muted); font-size: 1.12rem; max-width: 62ch; margin-top: 10px }
+code { font: .85em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px }
+pre.code { font: .82rem/1.55 var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 0 0 12px; white-space: pre-wrap }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px }
+table { border-collapse: collapse; width: 100%; font-size: .93rem }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-weight: 700; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .07em }
+tr:last-child td { border-bottom: 0 }
+pre.mermaid { background: transparent; margin: 0; text-align: center }
+.note { border-left: 3px solid var(--warn); padding: 4px 14px }
+
+/* ---------- stage ---------- */
+header { margin-bottom: 28px }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start }
+@media (max-width: 820px) { .stage { grid-template-columns: 1fr } .phone { justify-self: center } }
+.desk { position: relative; aspect-ratio: 16 / 10; min-height: 380px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(135deg, var(--wall-a), var(--wall-b)); border: 1px solid var(--line); max-width: 100% }
+.menubar { height: 26px; background: var(--win); backdrop-filter: blur(10px); display: flex; align-items: center; gap: 16px;
+  padding: 0 12px; font: 600 .74rem var(--body); color: var(--fg) }
+.menubar .sp { flex: 1 } .menubar .tray { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums }
+.tray-cat { width: 14px; height: 14px; image-rendering: pixelated }
+.notes-win { position: absolute; left: 6%; top: 15%; width: 46%; min-width: 220px; background: var(--win); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18); font-size: .78rem; overflow: hidden; backdrop-filter: blur(8px) }
+.notes-win .bar { display: flex; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--muted) }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line) }
+.notes-win .body { padding: 10px 14px; color: var(--muted); line-height: 1.5 }
+.notes-win .body b { color: var(--fg) }
+.pet { position: absolute; right: 4%; bottom: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px }
+#cat { width: 128px; height: 136px; image-rendering: pixelated; cursor: pointer; display: block }
+#cat:focus-visible { outline: 2px dashed var(--accent); outline-offset: 4px }
+.bubble { position: relative; max-width: 300px; min-width: 200px; background: var(--bubble); color: var(--bubble-ink); font: 400 .98rem/1.35 var(--pixel);
+  padding: 12px 14px; margin-right: 54px;
+  box-shadow: 0 0 0 3px #1b1b1f, 6px 6px 0 3px rgba(0,0,0,.25) }
+.bubble::after { content: ""; position: absolute; right: 22px; bottom: -14px; width: 14px; height: 14px; background: var(--bubble);
+  box-shadow: 3px 0 0 #1b1b1f, 0 3px 0 #1b1b1f, 3px 3px 0 #1b1b1f; clip-path: polygon(0 0, 100% 0, 100% 100%) }
+.bubble .who { font-weight: 600; color: #b23a5c; font-size: .8rem; letter-spacing: .04em }
+.bubble .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px }
+.pbtn { font: 600 .82rem var(--pixel); border: 0; background: #1b1b1f; color: #fffdf8; padding: 6px 10px; cursor: pointer;
+  box-shadow: 3px 3px 0 #b23a5c }
+.pbtn.alt { background: #fffdf8; color: #1b1b1f; box-shadow: inset 0 0 0 2px #1b1b1f, 3px 3px 0 rgba(0,0,0,.2) }
+.pbtn:hover { transform: translate(-1px,-1px) } .pbtn:focus-visible { outline: 2px solid #b23a5c; outline-offset: 2px }
+.fx { position: absolute; right: 52px; bottom: 120px; pointer-events: none; font: 600 1.2rem var(--pixel); color: var(--accent) }
+.fx span { position: absolute; animation: floatup 1.2s ease-out forwards }
+@keyframes floatup { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(-50px) } }
+
+.phone { width: 240px; aspect-ratio: 9 / 18.5; max-width: 100%; border-radius: 34px; background: #0e0f13; padding: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.22) }
+.screen { height: 100%; border-radius: 26px; background: linear-gradient(170deg, #3a2f52, #1c2f45); color: #fff; padding: 18px 10px; display: flex; flex-direction: column; gap: 10px; overflow: hidden }
+.lock-time { text-align: center; font: 700 2.6rem/1 var(--display); margin-top: 8px; font-variant-numeric: tabular-nums }
+.lock-date { text-align: center; font-size: .78rem; opacity: .85; margin-top: -4px }
+.notif { background: rgba(255,255,255,.88); color: #15171c; border-radius: 16px; padding: 10px 12px; font-size: .74rem; line-height: 1.35;
+  animation: drop .45s ease-out }
+@keyframes drop { from { transform: translateY(-14px); opacity: 0 } to { transform: none; opacity: 1 } }
+.notif .top { display: flex; align-items: center; gap: 6px; color: #555b66; font-size: .68rem; margin-bottom: 3px }
+.notif .ic { width: 18px; height: 18px; border-radius: 5px; background: #fffdf8; image-rendering: pixelated; box-shadow: 0 0 0 1px #ddd }
+.notif b { display: block; font-size: .78rem; color: #15171c }
+.phone-cap { text-align: center; font-size: .7rem; opacity: .7; margin-top: auto }
+
+.scenes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center }
+.scenes .lbl { font: 700 .74rem var(--body); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-right: 4px }
+.chip { font: 600 .86rem var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 6px 12px; border-radius: 999px; cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.hint { color: var(--muted); font-size: .85rem; margin-top: 10px }
+
+.states { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px }
+.st { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; font-size: .82rem }
+.st canvas { width: 80px; height: 85px; image-rendering: pixelated; display: block; margin: 0 auto 4px }
+.st b { display: block; font-family: var(--pixel); font-size: .95rem }
+.st span { color: var(--muted) }
+.layers { display: grid; gap: 10px }
+.layer { display: grid; grid-template-columns: 150px 1fr; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px }
+.layer > div { min-width: 0 } .layer b.t { font-family: var(--display); font-size: 1.05rem }
+.layer .where { font: .72rem var(--mono); color: var(--accent); display: block; margin-top: 2px }
+@media (max-width: 560px) { .layer { grid-template-columns: 1fr; gap: 4px } }
+.phase { display: grid; grid-template-columns: 84px 1fr; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line) }
+.phase:last-child { border-bottom: 0 } .phase b { font-family: var(--mono); font-weight: 400; color: var(--accent) } .phase div { min-width: 0 }
+@media (max-width: 520px) { .phase { grid-template-columns: 1fr } }
+@media (prefers-reduced-motion: reduce) { .notif, .fx span { animation: none } }
+
+/* ---------- class desk ---------- */
+.sec-head { margin: 64px 0 18px; max-width: 780px }
+.app { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 18px 40px rgba(20,24,34,.10) }
+.app-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 600 .8rem var(--body); color: var(--muted) }
+.app-bar .ttl { margin-left: 10px }
+.app-grid { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 620px }
+@media (max-width: 1040px) { .app-grid { grid-template-columns: 200px minmax(0, 1fr) } .chat { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line) } }
+@media (max-width: 760px) { .app-grid { grid-template-columns: 1fr } .side { border-right: 0; border-bottom: 1px solid var(--line) } }
+.chat { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; background: color-mix(in srgb, var(--bg) 45%, var(--surface)) }
+.chat-head { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line) }
+.chat-head canvas { width: 48px; height: 51px; image-rendering: pixelated; flex: none }
+.chat-head b { display: block; font: 600 1.05rem var(--pixel) } .chat-head small { color: var(--muted); font-size: .76rem }
+.log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 430px; min-height: 0 }
+.msg { max-width: 92%; font-size: .88rem; line-height: 1.42; padding: 9px 11px; white-space: pre-line; overflow-wrap: anywhere }
+.msg.w { align-self: flex-start; background: var(--bubble); color: var(--bubble-ink); margin-left: 3px; box-shadow: 0 0 0 2px #1b1b1f, 3px 3px 0 2px rgba(0,0,0,.16) }
+.msg.u { align-self: flex-end; background: var(--accent); color: #fff; border-radius: 12px 12px 3px 12px }
+.msg ul { margin: 6px 0 0; padding-left: 18px; white-space: normal } .msg li { margin-bottom: 3px }
+.msg .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px }
+.msg .pbtn { font-size: .78rem; text-align: left } .msg .pbtn:disabled { opacity: .45; cursor: default; transform: none } .msg .pbtn.picked { opacity: 1; background: #b23a5c }
+.divider { align-self: center; font: 700 .68rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.mastery { display: grid; gap: 5px; margin-top: 8px; white-space: normal }
+.mastery div { display: grid; grid-template-columns: 1fr 70px 34px; gap: 8px; align-items: center; font-size: .8rem }
+.mastery i { height: 7px; background: #e3e3dc; border-radius: 4px; overflow: hidden } .mastery i b { display: block; height: 100%; background: #2f8a5b } .mastery i b.lo { background: #d9577a }
+.mastery em { font-style: normal; font-variant-numeric: tabular-nums; text-align: right; color: #5b6372 }
+.sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 0 }
+.sugg .chip { font-size: .76rem; padding: 4px 10px }
+.ask { display: flex; gap: 8px; padding: 10px 14px 14px }
+.ask input { flex: 1; min-width: 0; font: 400 .9rem var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px }
+.ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 0 }
+.go { font: 700 .88rem var(--body); background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer }
+.subh { font: 700 .74rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px }
+.drop.small { padding: 12px 16px } .drop.small .big { font-size: .92rem }
+.setdue { font: .82rem var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--accent); border-radius: 7px; padding: 4px 6px }
+.side { border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; background: color-mix(in srgb, var(--bg) 55%, var(--surface)) }
+.side .lbl { font: 700 .7rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 2px 8px 6px }
+.cls { display: grid; grid-template-columns: 12px 1fr; gap: 2px 10px; align-items: center; text-align: left; border: 0; background: transparent; color: var(--fg);
+  padding: 9px 8px; border-radius: 9px; cursor: pointer; font: inherit; width: 100% }
+.cls:hover { background: var(--accent-soft) }
+.cls[aria-current="true"] { background: var(--fg); color: var(--bg) }
+.cls[aria-current="true"] small { color: var(--bg); opacity: .75 }
+.cls:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.cls i { width: 10px; height: 10px; border-radius: 3px }
+.cls b { font-size: .92rem } .cls small { grid-column: 2; color: var(--muted); font-size: .76rem; line-height: 1.2 }
+.addcls { margin-top: 8px; border: 1px dashed var(--line); background: transparent; color: var(--muted); padding: 8px; border-radius: 9px; font: 600 .84rem var(--body); cursor: pointer }
+.main { padding: 20px 22px 24px; min-width: 0; display: flex; flex-direction: column; gap: 16px }
+.chead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 20px; align-items: flex-end }
+.chead h3 { font: 700 1.5rem/1.1 var(--display); margin: 0 }
+.chead p { margin: 4px 0 0; color: var(--muted); font-size: .88rem }
+.next { font: 600 .82rem var(--body); padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--fg); font-variant-numeric: tabular-nums }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto }
+.tab { border: 0; background: transparent; color: var(--muted); font: 600 .9rem var(--body); padding: 9px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent) }
+.tab .n { font: .74rem var(--mono); color: var(--muted); margin-left: 4px }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px }
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; cursor: pointer; transition: border-color .15s, background .15s }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft) }
+.drop .big { font: 700 1rem var(--display) } .drop .sm { color: var(--muted); font-size: .84rem }
+.drop .pick { margin-left: auto; font: 600 .84rem var(--body); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 8px }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0 }
+.rows { display: grid; gap: 8px }
+.row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px }
+.row > div { min-width: 0 }
+.row .ico { width: 42px; height: 50px; border-radius: 5px; display: grid; place-items: center; font: 700 .64rem var(--mono); color: #fff; letter-spacing: .04em }
+.row .ico.sq { height: 42px; border-radius: 10px; font: 700 1rem var(--display); color: var(--fg); background: var(--accent-soft) }
+.row .t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.row .m { color: var(--muted); font-size: .82rem; margin-top: 1px }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px }
+.tag { font: 600 .7rem var(--body); padding: 2px 7px; border-radius: 5px; background: var(--accent-soft); color: var(--fg) }
+.pill { font: 700 .74rem var(--body); padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums }
+.pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok) }
+.pill.warn { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn) }
+.pill.hot { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent) }
+.pill.dim { background: var(--line); color: var(--muted) }
+.prog { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 6px; max-width: 260px }
+.prog i { display: block; height: 100%; background: var(--ok) }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)) }
+.form label { display: grid; gap: 4px; font: 700 .72rem var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.form input, .form select { font: 400 .92rem var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0 }
+.form input:focus-visible, .form select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0 }
+.form .go { font: 700 .88rem var(--body); background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer }
+.form .full { grid-column: 1 / -1; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: .84rem; color: var(--muted) }
+.chk { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); background: transparent; cursor: pointer; display: grid; place-items: center; color: #fff; font: 700 .8rem var(--body); padding: 0 }
+.chk[aria-pressed="true"] { background: var(--ok); border-color: var(--ok) }
+.row.done .t { text-decoration: line-through; color: var(--muted) }
+.mini { font: 600 .78rem var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 7px; padding: 5px 9px; cursor: pointer; white-space: nowrap }
+.coach { display: flex; align-items: flex-end; gap: 10px; justify-content: flex-end; margin-top: auto }
+.coach canvas { width: 64px; height: 68px; image-rendering: pixelated; flex: none }
+.coach .bubble { margin-right: 0; min-width: 0; max-width: 420px; font-size: .9rem }
+.coach .bubble::after { right: -14px; bottom: 12px; clip-path: polygon(0 0, 100% 100%, 0 100%); box-shadow: -3px 3px 0 #1b1b1f }
+.empty { color: var(--muted); font-size: .88rem; padding: 6px 2px }
+.cactions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.mini.danger { color: #c2334f; border-color: color-mix(in srgb, #c2334f 40%, var(--line)) }
+.go.danger { background: #c2334f }
+.confirm { flex-basis: 100%; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 12px 14px; border-radius: 10px;
+  background: color-mix(in srgb, #c2334f 12%, var(--surface)); border: 1px solid color-mix(in srgb, #c2334f 40%, var(--line)); font-size: .9rem }
+.editcls { flex: 1; grid-template-columns: 1fr 2fr }
+.swatches { display: flex; gap: 8px; align-items: center }
+.sw { width: 24px; height: 24px; border-radius: 7px; border: 2px solid transparent; cursor: pointer; padding: 0 }
+.sw[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 2px var(--surface) inset }
+.x-btn { border: 0; background: transparent; color: var(--muted); font: 600 1.1rem var(--body); cursor: pointer; padding: 0 4px; line-height: 1 }
+.x-btn:hover { color: #c2334f }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
+.seg button { border: 0; background: var(--surface); color: var(--muted); font: 600 .8rem var(--body); padding: 6px 12px; cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg) }
+.groups { display: grid; gap: 12px }
+.group { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px }
+.group ul { margin: 0; padding-left: 20px } .group li { margin-bottom: 4px; line-height: 1.55 }
+.ghead { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap } .ghead b { font: 700 1.02rem var(--display) }
+.glectures { display: flex; flex-wrap: wrap; gap: 6px }
+.qbuild { padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)) }
+.chapterpick { display: flex; flex-wrap: wrap; gap: 8px }
+.chk-chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: .84rem; cursor: pointer; background: var(--surface) }
+.sel { font: .88rem var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px }
+.panelbars { max-width: 460px } .panelbars i { background: var(--line) } .panelbars em { color: var(--muted) }
+.katex { font-size: 1.05em }
+.app { position: relative }
+.rright { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end }
+.rtools { display: inline-flex; gap: 2px }
+.rtools .x-btn { font-size: 1rem; padding: 2px 5px; border-radius: 6px } .rtools .x-btn:hover { background: var(--accent-soft) }
+.addrow { margin-top: 10px; border: 1px dashed var(--line); background: transparent; color: var(--muted); font: 600 .84rem var(--body); padding: 7px 12px; border-radius: 8px; cursor: pointer }
+.addrow:hover { color: var(--fg); border-color: var(--accent) }
+.notesbar .addrow { margin-top: 0 }
+.row.editing { display: block; padding: 0; border: 0 }
+.inline-edit { border: 1px solid var(--accent); }
+.inline-edit textarea { font: .9rem/1.5 var(--mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; resize: vertical; text-transform: none; letter-spacing: 0 }
+.inline-edit .full code { font-size: .8rem }
+.row.qrow { grid-template-columns: minmax(0, 1fr) auto }
+.t.wrap { white-space: normal; overflow: visible }
+.notesbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 10px }
+.glist { display: grid; gap: 2px }
+.glect { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .86rem; padding: 3px 0; border-bottom: 1px dashed var(--line) }
+.glect .muted, .muted { color: var(--muted) }
+.points ul { margin: 8px 0 0; padding-left: 20px; font-size: .9rem } .points li { margin-bottom: 3px }
+.toast { position: absolute; right: 18px; bottom: 18px; z-index: 5; display: flex; gap: 12px; align-items: flex-start; max-width: 380px; background: var(--bubble); color: var(--bubble-ink);
+  padding: 12px 12px 12px 10px; box-shadow: 0 0 0 3px #1b1b1f, 6px 6px 0 3px rgba(0,0,0,.25); font-size: .9rem; line-height: 1.4 }
+.toast canvas { width: 48px; height: 51px; image-rendering: pixelated; flex: none }
+.toast .x-btn { color: #1b1b1f } .toast .tacts { display: flex; gap: 6px; margin-top: 8px } .toast .tacts:empty { display: none }
+.toast .pbtn { font-size: .78rem }
+.quiz { max-width: 760px; display: grid; gap: 14px }
+.qtop { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px } .qtop b { font: 700 1.25rem var(--display) }
+.qprog { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden } .qprog i { display: block; height: 100%; background: var(--accent); transition: width .3s }
+.qbody { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: start }
+.qbody canvas, .qresult canvas { width: 80px; height: 85px; image-rendering: pixelated }
+@media (max-width: 560px) { .qbody { grid-template-columns: 1fr } }
+.qcard { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 14px; background: var(--surface) }
+.qtopic { font: 700 .72rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--accent) }
+.qq { font: 600 1.2rem/1.45 var(--body) }
+.choices { display: grid; gap: 10px }
+.choice { display: flex; gap: 12px; align-items: center; text-align: left; border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 12px; padding: 12px 14px; font: 500 1rem var(--body); cursor: pointer }
+.choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft) }
+.choice .letter { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-soft); font: 700 .85rem var(--mono) }
+.choice.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--surface)) } .choice.right .letter { background: var(--ok); color: #fff }
+.choice.wrong { border-color: #c2334f; background: color-mix(in srgb, #c2334f 12%, var(--surface)) } .choice.wrong .letter { background: #c2334f; color: #fff }
+.choice.dim { opacity: .55 } .choice:disabled { cursor: default }
+.explain { border-radius: 10px; padding: 10px 14px; font-size: .95rem; line-height: 1.5 }
+.explain.ok { background: color-mix(in srgb, var(--ok) 14%, transparent) } .explain.bad { background: color-mix(in srgb, #c2334f 12%, transparent) }
+.qcard > .go { justify-self: start }
+.keys { color: var(--muted); font-size: .84rem }
+.qresult { display: flex; gap: 18px; align-items: center } .score { font: 700 2.6rem/1 var(--display); margin: 4px 0 }
+.okc { background: color-mix(in srgb, var(--ok) 20%, transparent) !important; color: var(--ok) !important }
+.badc { background: color-mix(in srgb, #c2334f 18%, transparent) !important; color: #c2334f !important }
+.qbtns { display: flex; gap: 10px; flex-wrap: wrap }
+.notice { margin: 12px 0; padding: 10px 14px; border-radius: 10px; font-size: .88rem; line-height: 1.5; background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)) }
+.m.quote { font-style: italic; white-space: normal }
+.row.legacy { opacity: .6 }
+.claudebox { margin-top: auto; padding: 12px 8px 0; font-size: .84rem }
+.claudebox + .petswitch { margin-top: 0 }
+.claude-status { display: flex; align-items: center; gap: 6px; justify-content: space-between; color: var(--muted) } .claude-status b { color: var(--fg) }
+.keyform { display: grid; gap: 6px } .keyform label { display: grid; gap: 4px; font: 700 .72rem var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+.keyform input { font: .86rem var(--mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; min-width: 0 }
+.keyform .m { color: var(--muted); font-size: .76rem; line-height: 1.35 }
+.attach { position: relative; cursor: pointer }
+.pgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start }
+@media (max-width: 1100px) { .pgrid { grid-template-columns: 1fr } }
+.maker { padding: 16px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)); border: 1px solid var(--line) }
+.maker-form { padding: 10px 0 0; background: transparent; grid-template-columns: 1fr 1fr }
+.maker-form select { font: .9rem var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0 }
+.inline-check { display: flex !important; flex-direction: row; gap: 8px; align-items: center; text-transform: none !important; letter-spacing: 0 !important; font-weight: 600 !important; font-size: .86rem !important; color: var(--fg) !important; align-self: end }
+.go:disabled { opacity: .5; cursor: default }
+.exam-view { display: grid; gap: 14px; max-width: 820px }
+.paper { background: #fffdf8; color: #15171c; border-radius: 6px; padding: 28px 34px; font: 1.02rem/1.6 Georgia, "Times New Roman", serif; box-shadow: 0 10px 30px rgba(0,0,0,.18); display: grid; gap: 18px }
+.paper .muted { color: #666 } .pparts { list-style: lower-alpha; margin: 6px 0 0 } .pchoices { list-style: upper-alpha; margin: 6px 0 0 }
+.pkey { margin-top: 8px; padding: 8px 12px; border-left: 3px solid #2f8a5b; background: #eef7f1; font: .92rem/1.5 var(--body) }
+.petswitch { margin-top: auto; padding: 14px 8px 4px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 600 .84rem var(--body); color: var(--muted) }
+.toggle { width: 40px; height: 22px; border-radius: 11px; border: 0; background: var(--line); position: relative; cursor: pointer; flex: none; padding: 0 }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s }
+.toggle[aria-checked="true"] { background: var(--ok) } .toggle[aria-checked="true"]::after { left: 21px }
+.toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.msg .katex-display { margin: .4em 0 }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Concept + system design · Oct 8, 2026</div>
+  <h1>StudyWhitney</h1>
+  <p class="lede">Your study buddy is Whitney, a pixel cow cat who lives in the corner of your screen. She knows your classes, reads your notes, quizzes you, and starts meowing when an exam is coming up. The same reminders reach your phone when you're away from the laptop.</p>
+</header>
+
+<section aria-label="Mockup">
+  <div class="stage">
+    <div class="desk" id="desk">
+      <div class="menubar"><span></span><span>Finder</span><span style="font-weight:400">File</span><span style="font-weight:400">Edit</span><span class="sp"></span>
+        <span class="tray"><canvas class="tray-cat" id="trayCat" width="16" height="16"></canvas><span id="clock">Thu Oct 8 · 9:41 PM</span></span></div>
+      <div class="notes-win" aria-hidden="true">
+        <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>&nbsp; BIO 201 · Lecture 7 notes.pdf</div>
+        <div class="body"><b>Cellular respiration</b><br>Glycolysis → pyruvate (cytoplasm)<br>Krebs cycle → mitochondrial matrix<br>ETC → inner membrane, ~34 ATP<br><br><b>Exam:</b> Midterm Thu Oct 15, ch. 4–7</div>
+      </div>
+      <div class="pet">
+        <div class="bubble" id="bubble" aria-live="polite">
+          <div class="who">WHITNEY</div>
+          <div id="say"></div>
+          <div class="acts" id="acts"></div>
+        </div>
+        <canvas id="cat" width="32" height="34" tabindex="0" role="button" aria-label="Whitney the cat. Click to pet."></canvas>
+      </div>
+      <div class="fx" id="fx"></div>
+    </div>
+
+    <div class="phone" aria-label="Phone lock screen preview">
+      <div class="screen">
+        <div class="lock-time" id="ptime">9:41</div>
+        <div class="lock-date" id="pdate">Thursday, October 8</div>
+        <div id="notifs"></div>
+        <div class="phone-cap">Same reminder, pushed to your phone</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenes" role="group" aria-label="Pick a moment">
+    <span class="lbl">Try a moment</span>
+    <button class="chip" data-scene="week">Exam in 7 days</button>
+    <button class="chip" data-scene="tomorrow">Quiz tomorrow</button>
+    <button class="chip" data-scene="morning">Exam day</button>
+    <button class="chip" data-scene="notes">Notes uploaded</button>
+    <button class="chip" data-scene="nudge">Haven't studied</button>
+  </div>
+  <p class="hint">Example classes and dates. Click Whitney to pet her. Press "Quiz me" to answer a real question from the notes window.</p>
+</section>
+
+<section aria-label="Class desk mockup">
+  <div class="sec-head">
+    <div class="eyebrow">The app window</div>
+    <h2>Your class desk</h2>
+    <p>Each class has six tabs: syllabus, textbooks, notes, quizzes, tests and homework. You can rename or delete a class with the buttons at the top. Upload anything and Whitney reads it. Everything can be added, edited (✎) and deleted (×). The Quizzes tab has a quiz mode that takes you through one question at a time. Your changes are saved in this browser.</p>
+  </div>
+  <div class="app">
+    <div class="app-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="ttl">StudyWhitney · Class desk</span></div>
+    <div class="app-grid">
+      <nav class="side" aria-label="Classes">
+        <div class="lbl">Fall 2026</div>
+        <div id="clsList"></div>
+        <button class="addcls" id="addCls">+ Add a class</button>
+        <div class="claudebox" id="claudeBox" hidden></div>
+        <div class="petswitch" id="petSwitch" hidden><span>Whitney on desktop</span><button class="toggle" id="petToggle" role="switch" aria-checked="true" aria-label="Show Whitney on the desktop"></button></div>
+      </nav>
+      <div class="main">
+        <div class="chead" id="chead"></div>
+        <div class="tabs" role="tablist" id="tabs">
+          <button class="tab" role="tab" data-tab="syllabus">Syllabus<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="books">Textbooks<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="notes">Notes<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="quizzes">Quizzes<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="practice">Practice exams<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="tests">Tests<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="hw">Homework<span class="n"></span></button>
+        </div>
+        <div id="panel" role="tabpanel"></div>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" hidden><canvas id="toastCat" width="32" height="34" aria-hidden="true"></canvas>
+      <div style="min-width:0"><div class="who">WHITNEY</div><div class="tmsg"></div><div class="tacts"></div></div><button class="x-btn" id="toastX" aria-label="Close">×</button></div>
+  </div>
+</section>
+
+<div class="col" style="margin-top:56px">
+
+<section>
+  <h2>Whitney's moods</h2>
+  <p>Whitney is a small state machine with a sprite for each state. What she's doing tells you something before you read a word: sleeping means nothing is due, ears up with a "!" means an exam is close.</p>
+  <div class="states" id="states"></div>
+</section>
+
+<section>
+  <h2>The whole system, from the top</h2>
+  <p>Three places run code. Your <b>laptop</b> runs Whitney. Your <b>phone</b> gets push notifications and has the full app. The <b>cloud backend</b> is the brain: it stores your classes and notes, runs the AI, and decides when reminders go out. Whitney and the phone are two faces of the same brain.</p>
+  <div class="scroll">
+<pre class="mermaid">
+flowchart LR
+  subgraph Laptop
+    Whitney["Whitney desktop pet<br/>(Tauri app)"]
+    Cache[("Local cache<br/>SQLite")]
+    Whitney --- Cache
+  end
+  subgraph Cloud["Cloud backend"]
+    API["API + realtime<br/>gateway"]
+    Agent["Study agent<br/>(Claude + tools)"]
+    Ingest["Notes processor"]
+    Sched["Reminder scheduler"]
+    DB[("Postgres + pgvector")]
+    Files[("File storage")]
+    API --> Agent
+    API --> Ingest
+    Agent --> DB
+    Ingest --> DB
+    Ingest --> Files
+    Sched --> DB
+    Sched --> Agent
+  end
+  subgraph Phone
+    PApp["Phone app<br/>(Expo)"]
+  end
+  Whitney <-->|"WebSocket"| API
+  PApp <-->|"HTTPS"| API
+  Sched -->|"Expo Push → APNs/FCM"| PApp
+  Sched -->|"live event"| API
+</pre>
+  </div>
+</section>
+
+<section>
+  <h2>Layer by layer</h2>
+  <div class="layers">
+    <div class="layer"><div><b class="t">The window</b><span class="where">laptop</span></div><div>Whitney lives in a transparent, borderless window that stays on top of everything. Only the cat and the bubble catch clicks; everywhere else, clicks pass through to whatever app is underneath. Built with <b>Tauri</b> (a small Rust shell around a web view), so the window is ~10 MB, not a 150 MB Electron app. It starts at login and has a menu bar icon for settings and quitting.</div></div>
+    <div class="layer"><div><b class="t">The sprite</b><span class="where">laptop</span></div><div>Whitney is drawn on a 32 × 34 pixel canvas scaled up 4× with smoothing turned off, which keeps the edges crisp. Each mood is a row of frames in a sprite sheet (drawn in Aseprite). A game loop at 12 frames per second picks the frame for the current mood. This page draws her in code instead, but it's the same idea.</div></div>
+    <div class="layer"><div><b class="t">The mood engine</b><span class="where">laptop</span></div><div>A state machine decides what Whitney does. Inputs are events: a reminder arrived, you clicked her, you answered a quiz, you've been away 10 minutes. Each event moves her to a new state, which picks the animation and what the bubble says. Details below.</div></div>
+    <div class="layer"><div><b class="t">The connection</b><span class="where">laptop ↔ cloud</span></div><div>Whitney keeps one WebSocket open to the backend. Reminders arrive as small JSON events the moment they're due. She also keeps the next 7 days of reminders in a local SQLite file, so she still meows on time when the Wi-Fi drops, and syncs once she's back online.</div></div>
+    <div class="layer"><div><b class="t">The brain</b><span class="where">cloud</span></div><div>The study agent from the first design: Claude with tools to search your notes, list courses, create exams, make quizzes and grade them. When you talk to Whitney, your message goes here with Whitney's personality prompt on top. Answers cite which lecture or page they came from.</div></div>
+    <div class="layer"><div><b class="t">The clock</b><span class="where">cloud</span></div><div>The scheduler checks the <code>reminders</code> table every minute. When something is due, it asks the agent to write the message (using your weak topics and when you last studied), then sends it to Whitney, your phone, or both.</div></div>
+    <div class="layer"><div><b class="t">The phone</b><span class="where">phone</span></div><div>An Expo app with the full study tools: chat, uploads from the camera, quizzes, calendar. It registers for push notifications so reminders reach you on the lock screen with the same wording Whitney uses.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>How Whitney decides what to do</h2>
+  <div class="scroll">
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Sleeping: no mouse/keyboard for 10 min
+  Sleeping --> Idle: you're back
+  Idle --> Alert: reminder due
+  Sleeping --> Alert: reminder due
+  Alert --> Talking: you click Whitney or the bubble
+  Idle --> Talking: you click / press ⌥M
+  Talking --> Quizzing: "Quiz me"
+  Quizzing --> Celebrating: right answer
+  Quizzing --> Talking: wrong answer (Whitney explains)
+  Celebrating --> Idle: after 2 s
+  Talking --> Sleeping: "Later" (snooze)
+  Talking --> Idle: bubble closed
+</pre>
+  </div>
+  <p>Two rules keep her from being annoying. She only goes into <b>Alert</b> for real reminders, never at random. And while you're in a full-screen app or video call she holds the alert silently and sends it to your phone instead.</p>
+</section>
+
+<section>
+  <h2>Life of a reminder</h2>
+  <p>Say your BIO 201 midterm is on Thursday, Oct 15. Here's what happens behind "Psst, midterm in 7 days".</p>
+  <div class="scroll">
+<pre class="mermaid">
+sequenceDiagram
+  participant You
+  participant S as Scheduler
+  participant A as Study agent
+  participant M as Whitney (laptop)
+  participant P as Phone
+  You->>S: add exam "BIO 201 midterm, Oct 15" (or it's read from the syllabus)
+  S->>S: write 4 reminders: 7 days, 3 days, 1 day, morning of
+  Note over S: Oct 8, 9:40 PM: 7-day reminder is due
+  S->>A: write a nudge (exam, topics, weak spots, last studied)
+  A-->>S: { text, suggested_action: "quiz", topics }
+  alt Whitney is online and you're at the laptop
+    S->>M: WebSocket event
+    M->>M: Alert state, "!" and meow
+    You->>M: "Quiz me"
+    M->>S: acknowledged
+  else laptop offline, or no response in 5 min
+    S->>P: push notification
+  end
+  Note over S,P: "Exam day" reminders go to both at once
+</pre>
+  </div>
+  <p>Whichever device you respond on marks the reminder as handled, so you never get the same nudge twice. If the AI call fails, the scheduler falls back to a plain template ("BIO 201 midterm in 7 days") so a reminder is never skipped.</p>
+</section>
+
+<section>
+  <h2>What happens when you ask Whitney something</h2>
+  <p>Whatever you type goes to the study agent with three things attached: which class you're looking at, today's date, and a short list of your classes and upcoming tests. The agent decides which tools to call, and every fact it says comes from your own files. Here's what happens for the three kinds of request in the mockup.</p>
+  <h3>"Quiz me on chapters 4–5"</h3>
+<pre class="code">class = BIO 201 (the one you have open)
+search_material(class: BIO 201, chapters: [4, 5])     → 18 passages from Campbell ch. 4–5 + Lecture 6
+get_weak_topics(class: BIO 201)                     → Active transport 60%
+get_past_tests(class: BIO 201)                      → Midterm 1 Fall 2025 (for question style)
+generate_quiz(from: passages, count: 5, weak first, style: past test)
+  → one question at a time; each answer → grade_attempt → topic scores go up or down</pre>
+  <h3>"Give me an overall review"</h3>
+<pre class="code">get_course(BIO 201)          → covered: ch. 4–7 · next: Midterm 1 in 7 days (ch. 4–7)
+get_weak_topics(BIO 201)     → Enzymes 45%, ETC 55%, Active transport 60%
+search_material(topics: those 3, k: 12)
+write: score for each topic + a 3-step plan for tonight, weakest first
+  → offers "show summaries" or "quiz my weak spots"</pre>
+  <h3>"Review my notes from yesterday"</h3>
+<pre class="code">"yesterday" = Oct 7 (worked out from today's date)
+list_documents(kind: lecture, date: 2026-10-07)  → BIO Lecture 7, PSYC Lecture 5
+pick the one for the open class (BIO), mention the other
+summarize(document: BIO Lecture 7)               → 3 key points, each citing a slide
+  → offers a short quiz on just that lecture</pre>
+  <p>Summaries and flashcards are written once, when you upload, and saved. So "review yesterday's notes" is instant and cheap. Quizzes are written fresh each time, so you don't memorize the same questions.</p>
+</section>
+
+<section>
+  <h2>Whitney's personality</h2>
+  <p>Whitney's voice comes from a short system prompt placed on top of the study agent. The agent's tools and grounding rules stay the same; only the tone changes.</p>
+<pre class="code">You are Whitney, a black-and-white pixel cat who lives on the student's screen.
+Speak in 1–3 short sentences. Warm, a little smug, never guilt-trippy.
+Always say the class, the exam, and how many days are left.
+Suggest one small next step (10–20 minutes), never a whole study plan.
+Use what you know: weak topics, last study session, what was covered.
+Facts about course material must come from search_material, with the lecture cited.
+Occasionally meow. Never more than once per message.</pre>
+  <p>Bubble replies are capped at about 240 characters so they fit. A "Show more" button opens the full answer in the phone or desktop chat.</p>
+</section>
+
+<section>
+  <h2>What the class desk does under the hood</h2>
+  <p>Everything you add is tied to one class. That's what lets Whitney say "your BIO midterm covers chapters 4–7" and quiz you only on those chapters.</p>
+  <div class="scroll" style="margin-bottom:12px">
+  <table>
+    <tr><th>Tab</th><th>When you add something</th><th>Saved as</th></tr>
+    <tr><td>Syllabus</td><td>Claude reads it and pulls out test dates, the homework schedule, the textbook and week-by-week topics. You check the list and add it all with one click.</td><td><code>events</code>, <code>assignments</code>, <code>topics</code></td></tr>
+    <tr><td>Textbooks</td><td>File goes to storage. The notes processor finds the table of contents, splits the book by chapter, and indexes each chapter for search. Big books are read in the background; chapters show up as they finish.</td><td><code>documents</code> (kind: textbook) + <code>chunks</code> tagged by chapter</td></tr>
+    <tr><td>Lecture notes</td><td>Text is pulled out of PDFs and slides, and Claude reads photos of handwriting. Each lecture is tagged with topics, linked to textbook chapters, and turned into flashcards.</td><td><code>documents</code> (kind: lecture) + <code>chunks</code> + flashcards</td></tr>
+    <tr><td>Tests</td><td>Saved with what it covers. Old tests you upload teach Whitney the professor's question style. The scheduler writes four reminders (7, 3 and 1 day before, morning of). Uploading a syllabus fills this in for you, and you confirm each date.</td><td><code>events</code> + <code>reminders</code></td></tr>
+    <tr><td>Homework</td><td>Saved with its due date and optional file. A reminder is set for the day before. "Help me" opens a chat where Whitney gives hints using your notes, not answers.</td><td><code>assignments</code> + <code>reminders</code></td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>What gets stored</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Table</th><th>Holds</th><th>Whitney uses it for</th></tr>
+    <tr><td><code>courses</code>, <code>topics</code></td><td>Classes, textbook, syllabus units, date each was covered</td><td>Knowing what an exam covers</td></tr>
+    <tr><td><code>documents</code>, <code>chunks</code></td><td>Your notes and chapters, split up and embedded for search</td><td>Quiz questions and cited answers</td></tr>
+    <tr><td><code>events</code></td><td>Exams and quizzes for each class, with what they cover</td><td>Countdown and "!" alerts</td></tr>
+    <tr><td><code>assignments</code></td><td>Homework for each class: due date, attached file, done or not</td><td>"Due tomorrow" nudges and homework help</td></tr>
+    <tr><td><code>reminders</code></td><td>When to fire, message, which devices, handled or not</td><td>The meow schedule</td></tr>
+    <tr><td><code>attempts</code></td><td>Quiz answers and per-topic scores</td><td>"You got 58% on stoichiometry"</td></tr>
+    <tr><td><code>devices</code></td><td>Laptop session and phone push tokens</td><td>Where to send each reminder</td></tr>
+  </table>
+  </div>
+  <p class="note">Whitney never reads your screen. All she knows about your laptop is whether you're active or idle and whether an app is full screen, which macOS reports without seeing any content.</p>
+</section>
+
+<section>
+  <h2>Tech stack</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Piece</th><th>Tech</th><th>Why</th></tr>
+    <tr><td>Desktop pet</td><td>Tauri 2, TypeScript, canvas, SQLite plugin</td><td>Tiny, transparent always-on-top windows, Mac + Windows</td></tr>
+    <tr><td>Sprites</td><td>Aseprite → sprite sheet PNG + JSON</td><td>Standard pixel art workflow</td></tr>
+    <tr><td>Phone app</td><td>Expo (React Native) + Expo Notifications</td><td>One codebase, push without running your own APNs code</td></tr>
+    <tr><td>API + realtime</td><td>Node (Hono) with WebSockets</td><td>Same language as both apps</td></tr>
+    <tr><td>AI</td><td>Claude API: <code>claude-sonnet-5-5</code> for chat and exams, <code>claude-haiku-4-5</code> for nudges and tagging</td><td>Nudges are short and frequent, so they use the cheap model</td></tr>
+    <tr><td>Data</td><td>Postgres + pgvector, R2 for files</td><td>One database for records and search</td></tr>
+    <tr><td>Scheduler</td><td>Worker loop over the <code>reminders</code> table</td><td>Simple, restart-safe</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Build order</h2>
+  <div class="scroll">
+    <div class="phase"><b>Step 1</b><div>Whitney on the desktop with local exam dates only: sprite, moods, bubble, reminders from SQLite. No AI yet. You can use it the same week.</div></div>
+    <div class="phase"><b>Step 2</b><div>Backend + phone push. Exams sync, reminders reach the phone, and handling one on either device clears it on both.</div></div>
+    <div class="phase"><b>Step 3</b><div>Notes upload and the study agent. Talk to Whitney, get cited answers, write AI nudges.</div></div>
+    <div class="phase"><b>Step 4</b><div>Quizzes, practice exams, weak-topic tracking, syllabus import.</div></div>
+  </div>
+  <p style="margin-top:12px">Steps 2–4 split into parallel tasks (desktop app, phone app, API, notes processor), which you could hand to firstmate's crew, each running in its own Herdr tab.</p>
+</section>
+
+</div>
+</div>
+
+<script>
+/* ---------------- sprite engine ---------------- */
+const W = 32, H = 34;
+const PAL = { K:'#1b1b1f', B:'#2c2c33', W:'#fbfbf6', S:'#dcdcd3', P:'#f2a3b6', G:'#78c46a', H:'#ffffff', R:'#e0446a' };
+const ell = (x,y,cx,cy,rx,ry) => { const dx=(x+.5-cx)/rx, dy=(y+.5-cy)/ry; return dx*dx+dy*dy <= 1 };
+const tri = (x,y,a,b,c) => { const px=x+.5, py=y+.5;
+  const s=(p,q)=>(px-q[0])*(p[1]-q[1])-(p[0]-q[0])*(py-q[1]);
+  const d1=s(a,b), d2=s(b,c), d3=s(c,a); return !((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0)) };
+
+function buildCat(f) {
+  // f: { eyes:'open'|'blink'|'happy'|'closed', mouth:'closed'|'open', tail:number, alert:bool }
+  const g = Array.from({length:H}, () => Array(W).fill(null));
+  const set = (x,y,c) => { if (x>=0 && x<W && y>=0 && y<H) g[y][x] = c };
+  const top = f.alert ? 0 : 1;
+  const earL = [[6,9],[8,top],[13,5]], earR = [[26,9],[24,top],[19,5]];
+  const inHead = (x,y) => ell(x,y,16,12,10,7.6);
+  const inBody = (x,y) => ell(x,y,16,25,9,7.4);
+  // tail (behind body)
+  for (let t = 0; t <= 1.001; t += .03) {
+    const x = 24 + 5*t + Math.sin(f.tail) * 1.6 * t * t, y = 30 - 10*t;
+    const c = t > .85 ? 'W' : 'B';
+    set(Math.round(x), Math.round(y), c); set(Math.round(x)+1, Math.round(y), c);
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (inHead(x,y) || inBody(x,y) || tri(x,y,...earR)) g[y][x] = 'W';
+    if (tri(x,y,...earL)) g[y][x] = 'B';
+  }
+  // cow patches
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (g[y][x] !== 'W') continue;
+    if (inHead(x,y) && (ell(x,y,10.5,9.5,4.6,4.4) || ell(x,y,22.5,6.5,2.4,2))) g[y][x] = 'B';
+    if (!inHead(x,y) && inBody(x,y) && (ell(x,y,21.5,23.5,3.6,3.2) || ell(x,y,10.5,28.5,2.6,2.2))) g[y][x] = 'B';
+    if (tri(x,y,[24.6,7.6],[24,3],[21,6])) g[y][x] = 'P';
+  }
+  // outline
+  const out = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (g[y][x]) continue;
+    const n = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => { const v = g[y+dy]?.[x+dx]; return v && v !== 'K' });
+    if (n) out.push([x,y]);
+  }
+  out.forEach(([x,y]) => g[y][x] = 'K');
+  // legs + chin shading
+  for (let y = 28; y <= 32; y++) { set(13,y,'K'); set(18,y,'K') }
+  for (let x = 12; x <= 19; x++) if (g[19]?.[x] === 'W') set(x,20,'S');
+  // face
+  const eye = (x0) => {
+    if (f.eyes === 'open') { set(x0,11,'H'); set(x0+1,11,'G'); set(x0,12,'G'); set(x0+1,12,'K') }
+    else if (f.eyes === 'happy') { set(x0-1,12,'K'); set(x0,11,'K'); set(x0+1,11,'K'); set(x0+2,12,'K') }
+    else { set(x0,12,'K'); set(x0+1,12,'K'); if (f.eyes==='closed') { set(x0-1,12,'K'); set(x0+2,12,'K') } }
+  };
+  eye(11); eye(19);
+  set(15,14,'P'); set(16,14,'P');
+  set(15,15,'K'); set(16,15,'K');
+  if (f.mouth === 'open') { set(14,16,'K'); set(17,16,'K'); set(15,16,'R'); set(16,16,'R'); set(15,17,'K'); set(16,17,'K') }
+  else { set(14,16,'K'); set(17,16,'K') }
+  if (g[14][22] === 'W') set(22,14,'P');
+  [[4,13],[5,13],[4,15],[5,15],[26,13],[27,13],[26,15],[27,15]].forEach(([x,y]) => set(x,y,'K'));
+  return g;
+}
+function paint(ctx, g, oy = 0) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = g[y][x]; if (!c) continue;
+    ctx.fillStyle = PAL[c]; ctx.fillRect(x, y + oy, 1, 1);
+  }
+}
+
+/* ---------------- live pet ---------------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cat = document.getElementById('cat'), cctx = cat.getContext('2d');
+const say = document.getElementById('say'), acts = document.getElementById('acts'), fx = document.getElementById('fx');
+const pet = { mood: 'idle', talking: false, tick: 0, blinkAt: 30 };
+
+function frameFor(m, t) {
+  const tail = reduce ? 0 : t * (m === 'alert' ? .9 : .35);
+  const talkMouth = pet.talking && (t % 4 < 2) ? 'open' : 'closed';
+  const blink = (pet.blinkAt - t) <= 0 && (pet.blinkAt - t) > -2;
+  if (m === 'sleep') return { eyes:'closed', mouth:'closed', tail: 0, alert:false };
+  if (m === 'happy') return { eyes:'happy', mouth: talkMouth, tail, alert:false };
+  if (m === 'alert') return { eyes: blink ? 'blink' : 'open', mouth: talkMouth === 'open' ? 'open' : (t % 10 < 3 ? 'open' : 'closed'), tail, alert:true };
+  return { eyes: blink ? 'blink' : 'open', mouth: talkMouth, tail, alert:false };
+}
+function loop() {
+  pet.tick++;
+  if (pet.tick > pet.blinkAt + 2) pet.blinkAt = pet.tick + 25 + Math.floor(Math.random() * 30);
+  const t = pet.tick;
+  let oy = 0;
+  if (!reduce) {
+    if (pet.mood === 'alert') oy = (t % 6 < 3) ? -1 : 0;
+    else if (pet.mood === 'sleep') oy = (t % 24 < 12) ? 0 : 1;
+    else oy = (t % 16 < 8) ? 0 : 1;
+  }
+  paint(cctx, buildCat(frameFor(pet.mood, t)), oy);
+  if (pet.mood === 'sleep' && t % 18 === 0) burst('z', 1);
+}
+setInterval(loop, 1000 / 12); loop();
+
+function burst(ch, n) {
+  if (reduce) return;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span'); s.textContent = ch;
+    s.style.right = (Math.random() * 50) + 'px'; s.style.bottom = (Math.random() * 10) + 'px';
+    fx.appendChild(s); setTimeout(() => s.remove(), 1300);
+  }
+}
+
+let typeTimer = null;
+function speak(text, buttons = [], mood) {
+  if (mood) pet.mood = mood;
+  clearInterval(typeTimer); acts.innerHTML = '';
+  const addButtons = () => buttons.forEach(([label, fn, alt]) => {
+    const b = document.createElement('button'); b.className = 'pbtn' + (alt ? ' alt' : ''); b.textContent = label;
+    b.addEventListener('click', fn); acts.appendChild(b);
+  });
+  if (reduce) { say.textContent = text; addButtons(); return }
+  let i = 0; say.textContent = ''; pet.talking = true;
+  typeTimer = setInterval(() => {
+    i += 2; say.textContent = text.slice(0, i);
+    if (i >= text.length) { clearInterval(typeTimer); pet.talking = false; addButtons() }
+  }, 28);
+}
+
+/* ---------------- phone ---------------- */
+const notifs = document.getElementById('notifs');
+const icon = document.createElement('canvas'); icon.width = 32; icon.height = 34;
+paint(icon.getContext('2d'), buildCat({ eyes:'open', mouth:'closed', tail:0, alert:false }));
+const iconURL = icon.toDataURL();
+const tray = document.getElementById('trayCat').getContext('2d');
+tray.imageSmoothingEnabled = false; tray.drawImage(icon, 0, 0, 32, 34, 1, 0, 15, 16);
+function pushPhone(title, body, when = 'now') {
+  notifs.innerHTML = `<div class="notif"><div class="top"><img class="ic" src="${iconURL}" alt=""> STUDYWHITNEY <span style="margin-left:auto">${when}</span></div><b>${title}</b>${body}</div>`;
+}
+
+/* ---------------- scenes ---------------- */
+const demoQuiz = () => speak('Where does the Krebs cycle happen?', [
+  ['A) Cytoplasm', () => wrong('Not quite. That\'s glycolysis. Krebs runs in the mitochondrial matrix (Lecture 7, slide 12). Want another?')],
+  ['B) Mitochondrial matrix', right],
+  ['C) Nucleus', () => wrong('Nope, the nucleus holds DNA. Krebs runs in the mitochondrial matrix (Lecture 7, slide 12). Another one?')],
+], 'idle');
+function right() { speak('YES. Mitochondrial matrix. 1 for 1. I\'m adding Krebs to your "solid" pile. Meow.', [['Next question', quiz2], ['Done for now', later, true]], 'happy'); burst('★', 4) }
+function wrong(msg) { speak(msg, [['Try another', quiz2], ['Done for now', later, true]], 'idle') }
+const quiz2 = () => speak('Roughly how many ATP does the electron transport chain make?', [
+  ['A) 2', () => wrong('That\'s glycolysis. The ETC makes about 34 (Lecture 7). One more?')],
+  ['B) About 34', right],
+  ['C) 100', () => wrong('Too many! It\'s about 34 (Lecture 7). One more?')],
+], 'idle');
+function later() { speak('Okay. I\'ll nap and ping you at 8:00 PM tomorrow. Your phone too.', [], 'sleep') }
+
+const SCENES = {
+  week: () => { speak('Psst. BIO 201 midterm is next Thursday, Oct 15. That\'s 7 days. 20 min of Krebs cycle flashcards tonight?', [['Quiz me', demoQuiz], ['Later', later, true]], 'alert');
+    pushPhone('BIO 201 midterm in 7 days', 'Thu Oct 15 · Chapters 4–7. Whitney made 12 flashcards from Lecture 7.') },
+  tomorrow: () => { speak('!! CHEM 110 demoQuiz is TOMORROW at 10 AM. You got 58% on stoichiometry last time. 10 practice problems?', [['Quiz me', demoQuiz], ['Later', later, true]], 'alert');
+    pushPhone('CHEM 110 demoQuiz tomorrow, 10 AM', 'Weak spot: stoichiometry (58%). 10 practice problems ready.') },
+  morning: () => { speak('Good morning! BIO 201 midterm is at 2 PM today. Five warmup questions, then go eat breakfast. You\'ve got this.', [['Warm up', demoQuiz], ['I\'m ready', () => { speak('That\'s my student. Good luck! Meow.', [], 'happy'); burst('♥', 3) }, true]], 'happy');
+    pushPhone('Exam day: BIO 201 at 2 PM', 'Room 104 · Bring a calculator. Quick warmup ready.', '7:30 AM') },
+  notes: () => { speak('Got your Lecture 7 notes! I tagged them: glycolysis, Krebs cycle, ETC. Made 12 flashcards.', [['Quiz me', demoQuiz], ['Thanks Whitney', () => { speak('Mrrp.', [], 'happy'); burst('♥', 3) }, true]], 'happy');
+    pushPhone('Lecture 7 notes are ready', '3 topics tagged · 12 new flashcards for BIO 201.') },
+  nudge: () => { speak('You haven\'t opened CHEM 110 in 3 days and the midterm is in 12. Fifteen minutes? I\'ll keep you company.', [['Quiz me', demoQuiz], ['Later', later, true]], 'idle');
+    pushPhone('CHEM 110: 3 days since you studied', 'Midterm in 12 days. A 15-minute session keeps it fresh.', '6:00 PM') },
+};
+const chips = [...document.querySelectorAll('.chip')];
+chips.forEach(c => c.addEventListener('click', () => {
+  chips.forEach(x => x.setAttribute('aria-pressed', x === c ? 'true' : 'false'));
+  SCENES[c.dataset.scene]();
+}));
+const petMoo = () => { const prev = pet.mood; pet.mood = 'happy'; burst('♥', 3);
+  if (!pet.talking) say.textContent.length || speak('Mrrp.', [], 'happy');
+  setTimeout(() => { if (pet.mood === 'happy') pet.mood = prev === 'sleep' ? 'idle' : prev }, 1500) };
+cat.addEventListener('click', petMoo);
+cat.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); petMoo() } });
+chips[0].setAttribute('aria-pressed', 'true'); chips.slice(1).forEach(x => x.setAttribute('aria-pressed', 'false'));
+SCENES.week();
+
+/* ---------------- mood gallery ---------------- */
+const gallery = [
+  ['Idle', 'nothing due soon', { eyes:'open', mouth:'closed', tail:.6, alert:false }],
+  ['Alert', 'exam coming up', { eyes:'open', mouth:'open', tail:1.4, alert:true }],
+  ['Talking', 'bubble open', { eyes:'open', mouth:'open', tail:.3, alert:false }],
+  ['Celebrating', 'right answer', { eyes:'happy', mouth:'open', tail:1, alert:false }],
+  ['Sleeping', 'you\'re away or snoozed', { eyes:'closed', mouth:'closed', tail:0, alert:false }],
+];
+const st = document.getElementById('states');
+gallery.forEach(([name, when, f]) => {
+  const d = document.createElement('div'); d.className = 'st';
+  const c = document.createElement('canvas'); c.width = W; c.height = H; paint(c.getContext('2d'), buildCat(f));
+  d.append(c); d.insertAdjacentHTML('beforeend', `<b>${name}</b><span>${when}</span>`); st.appendChild(d);
+});
+
+/* ---------------- class desk ---------------- */
+const TODAY = (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d })();
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const TODAY_ISO = isoOf(TODAY), YESTERDAY_ISO = isoOf(new Date(TODAY - 864e5));
+const D = s => new Date(s + 'T12:00');
+const daysTo = s => Math.round((D(s) - TODAY) / 864e5);
+const fmt = (d, o = { weekday:'short', month:'short', day:'numeric' }) => d.toLocaleDateString('en-US', o);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const plus = days => isoOf(new Date(TODAY.getTime() + days * 864e5));
+const COLORS = ['#2f8a5b', '#b8741a', '#6b5bc9', '#d9577a', '#4a7fb5', '#8a6d3b'];
+
+/* Math is written in LaTeX between $…$ and typeset with KaTeX when it's on the page */
+function renderMath(el) {
+  if (!el || !window.renderMathInElement) return;
+  try { renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }) } catch (e) {}
+}
+
+const CLASSES = [
+  { code:'BIO 201', name:'Intro to Cell Biology', meta:'Prof. Alvarez · MWF 10:00 · Sci 104', color:'#2f8a5b', suggestCh:'chapters 4–5',
+    chTitles:{ 4:'A tour of the cell', 5:'Membrane transport', 6:'Enzymes and metabolism', 7:'Cellular respiration' },
+    syllabus:{ file:'BIO201_Syllabus_Fall26.pdf', found:[
+      ['Test', 'Midterm 1 · Thu Oct 15 · Ch. 4–7'], ['Test', 'Final exam · Mon Dec 14 · Ch. 1–14'],
+      ['Homework', 'Problem sets due most Fridays'], ['Textbook', 'Campbell Biology, 12th ed.'],
+      ['Schedule', 'Chapter-by-week plan for 15 weeks'], ['Grading', 'Midterms 40% · Final 35% · Homework 25%'] ], added:true },
+    books:[{ title:'Campbell Biology', sub:'12th ed. · PDF · 184 MB', type:'PDF', chapters:24, done:24, assigned:'Ch. 4–9 this unit' }],
+    notes:[{ n:7, ch:7, title:'Cellular respiration', iso:'2026-10-07', type:'PDF', tags:['Glycolysis','Krebs cycle','ETC'], cards:12,
+             sum:['Overall reaction: $\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\,\\text{O}_2 \\rightarrow 6\\,\\text{CO}_2 + 6\\,\\text{H}_2\\text{O} + \\text{ATP}$',
+                  'Glycolysis splits glucose into 2 pyruvate in the cytoplasm, for a net 2 ATP.',
+                  'The Krebs cycle runs in the mitochondrial matrix and loads up NADH and $\\text{FADH}_2$.',
+                  'The electron transport chain on the inner membrane uses $\\text{O}_2$ to make about 34 ATP.'] },
+           { n:6, ch:5, title:'Membrane transport', iso:'2026-10-05', type:'Photo ×4', tags:['Diffusion','Active transport'], cards:9,
+             sum:['Diffusion moves molecules from high to low concentration with no energy.','Osmosis is water diffusing across a membrane.','Active transport pumps against the gradient and costs ATP: the pump moves $3\\,\\text{Na}^+$ out and $2\\,\\text{K}^+$ in.'] },
+           { n:5, ch:6, title:'Enzymes', iso:'2026-10-02', type:'Slides', tags:['Enzymes','Activation energy'], cards:10,
+             sum:['Enzymes lower activation energy $E_a$; they do not change $\\Delta G$.','Each active site fits a specific substrate.','Competitive inhibitors block the active site; noncompetitive ones bind elsewhere.'] }],
+    tests:[{ name:'Midterm 1', date:'2026-10-15', time:'2:00 PM', covers:'Ch. 4–7', room:'Sci 104' },
+           { name:'Final exam', date:'2026-12-14', time:'9:00 AM', covers:'Ch. 1–14', room:'Gym' }],
+    pastTests:[{ name:'BIO201_Midterm1_Fall2025.pdf' }],
+    hw:[{ name:'Problem set 4: respiration', due:'2026-10-10', done:false, file:'pset4.pdf' },
+        { name:'Lab report: osmosis', due:'2026-10-13', done:false },
+        { name:'Problem set 3', due:'2026-10-03', done:true, file:'pset3.pdf' }],
+    quizzes:[{ iso:'2026-10-06', scope:'Chapters 5–6', right:2, n:3, missed:['Enzymes'] }],
+    mastery:{ 'Cell structure':.8, 'Diffusion':.85, 'Active transport':.6, 'Enzymes':.45, 'Glycolysis':.9, 'Krebs cycle':.7, 'ETC':.55 } },
+  { code:'CHEM 110', name:'General Chemistry', meta:'Prof. Okafor · TTh 9:30 · Hall B', color:'#b8741a', suggestCh:'chapter 4',
+    chTitles:{ 3:'The mole', 4:'Stoichiometry' },
+    syllabus:{ file:'CHEM110_syllabus.pdf', found:[ ['Test','Quiz 3 · Fri Oct 9 · Stoichiometry'], ['Test','Midterm · Tue Oct 20 · Ch. 1–5'], ['Homework','Online HW due Fridays'], ['Textbook','Chemistry: The Central Science, 15th ed.'] ], added:true },
+    books:[{ title:'Chemistry: The Central Science', sub:'15th ed. · EPUB · 92 MB', type:'EPUB', chapters:25, done:25, assigned:'Ch. 1–5 this unit' }],
+    notes:[{ n:4, ch:4, title:'Stoichiometry', iso:'2026-10-06', type:'Slides', tags:['Stoichiometry','Limiting reagent'], cards:14,
+             sum:['Mole ratios come from the balanced equation: in $2\\,\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\,\\text{H}_2\\text{O}$, the ratio is $\\text{H}_2 : \\text{O}_2 = 2 : 1$.',
+                  'The limiting reagent runs out first and sets how much product you get.',
+                  'Percent yield $= \\dfrac{\\text{actual}}{\\text{theoretical}} \\times 100\\%$'] },
+           { n:3, ch:3, title:'The mole', iso:'2026-10-01', type:'PDF', tags:['The mole','Molar mass'], cards:8,
+             sum:['One mole is $6.02 \\times 10^{23}$ particles (Avogadro\'s number).','Molar mass $M$ (in g/mol) comes from the periodic table.','Moles from mass: $n = \\dfrac{m}{M}$'] }],
+    tests:[{ name:'Quiz 3', date:'2026-10-09', time:'10:00 AM', covers:'Stoichiometry', room:'Hall B' },
+           { name:'Midterm', date:'2026-10-20', time:'9:30 AM', covers:'Ch. 1–5', room:'Hall B' }],
+    pastTests:[], hw:[{ name:'Online HW 6', due:'2026-10-09', done:false }],
+    quizzes:[{ iso:'2026-10-05', scope:'Chapter 4', right:1, n:2, missed:['Limiting reagent'] }],
+    mastery:{ 'The mole':.8, 'Stoichiometry':.58, 'Limiting reagent':.5 } },
+  { code:'PSYC 101', name:'Intro to Psychology', meta:'Dr. Lin · MW 1:00 · Online', color:'#6b5bc9', suggestCh:'chapter 4',
+    chTitles:{ 1:'Psychological science', 4:'Memory' },
+    syllabus:{ file:'PSYC101 Syllabus.docx', found:[ ['Test','Exam 1 · Wed Oct 28 · Ch. 1–4'], ['Homework','Reading responses due Mondays'], ['Textbook','Psychology, 6th ed.'] ], added:true },
+    books:[{ title:'Psychology', sub:'6th ed. · PDF · 61 MB', type:'PDF', chapters:16, done:16, assigned:'Ch. 1–4 this unit' }],
+    notes:[{ n:5, ch:4, title:'Memory', iso:'2026-10-07', type:'Typed notes', tags:['Encoding','Working memory'], cards:11,
+             sum:['Memory has three stages: encoding, storage and retrieval.','Working memory holds about $7 \\pm 2$ items for a short time.','Spacing study sessions out beats cramming for long-term memory.'] }],
+    tests:[{ name:'Exam 1', date:'2026-10-28', time:'1:00 PM', covers:'Ch. 1–4', room:'Online' }],
+    pastTests:[], hw:[{ name:'Reading response 3', due:'2026-10-12', done:false }], quizzes:[],
+    mastery:{ 'History':.9, 'Working memory':.75, 'Encoding':.6 } },
+  { code:'MATH 221', name:'Calculus II', meta:'Prof. Becker · MTWF 11:00 · Math 201', color:'#d9577a', suggestCh:'chapter 7',
+    chTitles:{ 5:'Integrals', 7:'Techniques of integration' },
+    syllabus:{ file:'MATH221_Fall26.pdf', found:[ ['Test','Exam 1 · Thu Oct 22 · 5.5, 7.1–7.2'], ['Homework','WebAssign due before each class'], ['Textbook','Stewart, Calculus: Early Transcendentals, 9th ed.'] ], added:true },
+    books:[{ title:'Calculus: Early Transcendentals', sub:'Stewart · 9th ed. · PDF · 210 MB', type:'PDF', chapters:17, done:17, assigned:'Ch. 5–7 this unit' }],
+    notes:[{ n:4, ch:7, title:'Trig integrals', iso:'2026-10-07', type:'Photo ×6', tags:['Trig integrals'], cards:8,
+             sum:['For $\\int \\sin^m x \\cos^n x\\,dx$ with $n$ odd: save one $\\cos x$, then use $\\cos^2 x = 1 - \\sin^2 x$ and let $u = \\sin x$.',
+                  'When both powers are even, use $\\sin^2 x = \\tfrac{1}{2}(1 - \\cos 2x)$.',
+                  'Example: $\\displaystyle\\int \\sin^2 x\\,dx = \\frac{x}{2} - \\frac{\\sin 2x}{4} + C$'] },
+           { n:3, ch:7, title:'Integration by parts', iso:'2026-10-05', type:'Photo ×5', tags:['Integration by parts'], cards:9,
+             sum:['Formula: $\\displaystyle\\int u\\,dv = uv - \\int v\\,du$',
+                  'Pick $u$ with LIATE: logs, inverse trig, algebraic, trig, exponential.',
+                  'Example: $\\displaystyle\\int x e^x\\,dx = x e^x - e^x + C$'] },
+           { n:2, ch:5, title:'u-substitution', iso:'2026-10-02', type:'Typed notes', tags:['Substitution'], cards:7,
+             sum:['Let $u = g(x)$, so $du = g\'(x)\\,dx$.',
+                  '$\\displaystyle\\int f(g(x))\\,g\'(x)\\,dx = \\int f(u)\\,du$',
+                  'Example: $\\displaystyle\\int 2x\\cos(x^2)\\,dx = \\sin(x^2) + C$'] }],
+    tests:[{ name:'Exam 1', date:'2026-10-22', time:'11:00 AM', covers:'5.5, 7.1–7.2', room:'Math 201' }],
+    pastTests:[], hw:[{ name:'WebAssign 7.2', due:'2026-10-09', done:false }, { name:'Problem set 3: by parts', due:'2026-10-14', done:false }],
+    quizzes:[], mastery:{ 'Substitution':.8, 'Integration by parts':.55, 'Trig integrals':.4 } },
+];
+
+const BANK = {
+  'BIO 201': [
+    { ch:4, topic:'Cell structure', q:'Which organelle makes most of the cell\'s ATP?', a:['Ribosome','Mitochondrion','Golgi apparatus'], c:1, why:'Mitochondria run cellular respiration (Ch. 4).' },
+    { ch:4, topic:'Cell structure', q:'Which structure do plant cells have that animal cells don\'t?', a:['Cell wall','Nucleus','Ribosomes'], c:0, why:'Plant cells have a cellulose cell wall (Ch. 4).' },
+    { ch:5, topic:'Active transport', q:'Moving ions against their concentration gradient needs…', a:['Simple diffusion','Active transport','Osmosis'], c:1, why:'Going against the gradient costs ATP, like the $\\text{Na}^+/\\text{K}^+$ pump (Lecture 6).' },
+    { ch:5, topic:'Diffusion', q:'Osmosis is the diffusion of…', a:['Water','Glucose','Ions'], c:0, why:'Osmosis is water crossing a membrane (Lecture 6).' },
+    { ch:6, topic:'Enzymes', q:'Enzymes speed up reactions by lowering…', a:['Temperature','$E_a$, the activation energy','$\\Delta G$, the free energy change'], c:1, why:'They lower $E_a$; $\\Delta G$ stays the same (Lecture 5).' },
+    { ch:6, topic:'Enzymes', q:'A competitive inhibitor binds to…', a:['The active site','Another site on the enzyme','The product'], c:0, why:'It competes with the substrate for the active site (Lecture 5).' },
+    { ch:7, topic:'Krebs cycle', q:'Where does the Krebs cycle happen?', a:['Cytoplasm','Mitochondrial matrix','Nucleus'], c:1, why:'In the mitochondrial matrix (Lecture 7, slide 12).' },
+    { ch:7, topic:'ETC', q:'About how many ATP does the electron transport chain make per glucose?', a:['2','About 34','100'], c:1, why:'About 34 ATP per glucose (Lecture 7).' },
+  ],
+  'CHEM 110': [
+    { ch:3, topic:'The mole', q:'Avogadro\'s number is about…', a:['$6.02 \\times 10^{23}$','$3.00 \\times 10^{8}$','$1.60 \\times 10^{-19}$'], c:0, why:'One mole is $6.02 \\times 10^{23}$ particles (Lecture 3).' },
+    { ch:3, topic:'The mole', q:'How many moles are in $36\\text{ g}$ of $\\text{H}_2\\text{O}$ ($M = 18\\text{ g/mol}$)?', a:['$0.5$','$2$','$36$'], c:1, why:'$n = \\dfrac{m}{M} = \\dfrac{36}{18} = 2$ mol (Lecture 3).' },
+    { ch:4, topic:'Stoichiometry', q:'In $2\\,\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\,\\text{H}_2\\text{O}$, how many mol of $\\text{O}_2$ react with $4$ mol of $\\text{H}_2$?', a:['$1$','$2$','$4$'], c:1, why:'$\\text{H}_2 : \\text{O}_2 = 2 : 1$, so $4$ mol $\\text{H}_2$ needs $2$ mol $\\text{O}_2$ (Lecture 4).' },
+    { ch:4, topic:'Limiting reagent', q:'The limiting reagent is the one that…', a:['Is in excess','Runs out first','Has the biggest molar mass'], c:1, why:'It runs out first and caps the product (Lecture 4).' },
+  ],
+  'PSYC 101': [
+    { ch:1, topic:'History', q:'Who opened the first psychology lab, in 1879?', a:['Sigmund Freud','Wilhelm Wundt','B. F. Skinner'], c:1, why:'Wundt, in Leipzig (Ch. 1).' },
+    { ch:4, topic:'Working memory', q:'Working memory holds about how many items?', a:['$2 \\pm 1$','$7 \\pm 2$','$20 \\pm 5$'], c:1, why:'Miller\'s "$7 \\pm 2$" (Lecture 5).' },
+    { ch:4, topic:'Encoding', q:'Which study habit helps long-term memory most?', a:['Cramming the night before','Spacing sessions out','Rereading highlights'], c:1, why:'Spaced practice beats cramming (Lecture 5).' },
+  ],
+  'MATH 221': [
+    { ch:5, topic:'Substitution', q:'Evaluate $\\displaystyle\\int 2x\\cos(x^2)\\,dx$.', a:['$\\sin(x^2) + C$','$2\\sin(x^2) + C$','$-\\sin(x^2) + C$'], c:0, why:'Let $u = x^2$, so $du = 2x\\,dx$ and it becomes $\\int \\cos u\\,du = \\sin u + C$ (Lecture 2).' },
+    { ch:7, topic:'Integration by parts', q:'Evaluate $\\displaystyle\\int x e^x\\,dx$.', a:['$x e^x + C$','$x e^x - e^x + C$','$\\tfrac{x^2}{2} e^x + C$'], c:1, why:'With $u = x$ and $dv = e^x\\,dx$: $uv - \\int v\\,du = x e^x - e^x + C$ (Lecture 3).' },
+    { ch:7, topic:'Integration by parts', q:'For $\\displaystyle\\int x \\ln x\\,dx$, what should $u$ be?', a:['$u = x$','$u = \\ln x$','$u = x \\ln x$'], c:1, why:'LIATE puts logs first, so $u = \\ln x$ and $dv = x\\,dx$ (Lecture 3).' },
+    { ch:7, topic:'Trig integrals', q:'Evaluate $\\displaystyle\\int \\sin^2 x\\,dx$.', a:['$\\dfrac{x}{2} - \\dfrac{\\sin 2x}{4} + C$','$\\dfrac{\\sin^3 x}{3} + C$','$-\\cos^2 x + C$'], c:0, why:'Use $\\sin^2 x = \\tfrac{1}{2}(1 - \\cos 2x)$, then integrate each term (Lecture 4).' },
+    { ch:7, topic:'Trig integrals', q:'For $\\displaystyle\\int \\sin^4 x \\cos^3 x\\,dx$, which substitution works?', a:['$u = \\cos x$','$u = \\sin x$','$u = \\tan x$'], c:1, why:'The cosine power is odd: save one $\\cos x$, turn $\\cos^2 x$ into $1 - \\sin^2 x$, then $u = \\sin x$ (Lecture 4).' },
+  ],
+};
+
+/* ---------------- saving ---------------- */
+const STORE = 'studywhitney.classes.v1';
+let cur = 0, tab = 'syllabus', notesView = 'chapter', editing = false, confirmDelete = false;
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+  if (saved && Array.isArray(saved.classes)) {
+    saved.classes.forEach(c => {
+      (c.notes || []).forEach(n => n.reading = false);
+      (c.pastTests || []).forEach(p => p.reading = false);
+      (c.books || []).forEach(b => { if (b.done < b.chapters) b.done = b.chapters });
+      if (c.syllabus) c.syllabus.reading = false;
+    });
+    CLASSES.splice(0, CLASSES.length, ...saved.classes);
+    cur = Math.max(0, Math.min(saved.cur || 0, CLASSES.length - 1));
+  }
+} catch (e) {}
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ classes: CLASSES, cur })) } catch (e) {} }
+const blankClass = (code, name) => ({ code, name: name || 'New class', meta: '', color: COLORS[CLASSES.length % COLORS.length], suggestCh: 'chapter 1',
+  chTitles: {}, syllabus: null, books: [], notes: [], tests: [], pastTests: [], hw: [], quizzes: [], mastery: {} });
+
+const C = () => CLASSES[cur];
+const bankOf = c => BANK[c.bank || c.code] || [];
+const upcoming = c => c.tests.filter(t => daysTo(t.date) >= 0).sort((a, b) => D(a.date) - D(b.date));
+function countdown(days) {
+  if (days < 0) return ['dim', 'Past'];
+  if (days === 0) return ['hot', 'Today'];
+  if (days === 1) return ['hot', 'Tomorrow'];
+  if (days <= 7) return ['warn', `In ${days} days`];
+  return ['ok', `In ${days} days`];
+}
+const chLabel = chs => chs.length === 1 ? `chapter ${chs[0]}`
+  : chs.every((v, i) => !i || v === chs[i - 1] + 1) ? `chapters ${chs[0]}–${chs[chs.length - 1]}` : `chapters ${chs.join(' and ')}`;
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* Each class owns its quiz questions, so they can be added and edited */
+CLASSES.forEach(c => {
+  if (!c.questions) c.questions = bankOf(c).map(q => ({ ...q, a: [...q.a] }));
+  c.quizzes = c.quizzes || []; c.chTitles = c.chTitles || {}; c.mastery = c.mastery || {};
+});
+let edit = null;        // the item being edited: { kind, i, isNew }
+let quiz = null;        // the quiz in progress
+const openNotes = new Set();
+function coversCh(covers, k) {
+  const t = String(covers || ''), n = +k;
+  for (const m of t.matchAll(/(\d+)(?:\.\d+)?\s*[–-]\s*(\d+)/g)) if (n >= +m[1] && n <= +m[2]) return true;
+  return [...t.matchAll(/(\d+)(?:\.\d+)?/g)].some(m => +m[1] === n);
+}
+const weakTopics = c => Object.entries(c.mastery).filter(([, v]) => v < .65).sort((a, b) => a[1] - b[1]).map(([k]) => k);
+const bullets = arr => `<ul>${arr.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`;
+const masteryBars = c => Object.entries(c.mastery).sort((a, b) => a[1] - b[1]).map(([k, v]) =>
+  `<div><span>${esc(k)}</span><i><b style="width:${Math.round(v * 100)}%" class="${v < .65 ? 'lo' : ''}"></b></i><em>${Math.round(v * 100)}%</em></div>`).join('');
+
+/* ---------------- Whitney: animation + pop-up messages ---------------- */
+const coach = { mood: 'idle', t: 0 };
+setInterval(() => {
+  const t = ++coach.t, blink = t % 40 > 37;
+  const f = coach.mood === 'happy' ? { eyes: 'happy', mouth: t % 8 < 4 ? 'open' : 'closed', tail: reduce ? 0 : t * .35, alert: false }
+          : { eyes: blink ? 'blink' : 'open', mouth: 'closed', tail: reduce ? 0 : t * (coach.mood === 'alert' ? .9 : .35), alert: coach.mood === 'alert' };
+  const g = buildCat(f), oy = !reduce && t % 16 >= 8 ? 1 : 0;
+  ['toastCat', 'quizCat'].forEach(id => { const el = document.getElementById(id); if (el && el.offsetParent) paint(el.getContext('2d'), g, oy) });
+}, 1000 / 12);
+const toast = document.getElementById('toast');
+let toastTimer;
+function hideToast() { toast.hidden = true; if (!quiz) coach.mood = 'idle' }
+function tell(text, mood = 'idle', buttons = []) {
+  coach.mood = mood;
+  toast.querySelector('.tmsg').textContent = text;
+  const acts = toast.querySelector('.tacts'); acts.innerHTML = '';
+  buttons.forEach(([label, fn]) => {
+    const b = document.createElement('button'); b.className = 'pbtn'; b.textContent = label;
+    b.addEventListener('click', () => { fn(); hideToast() }); acts.appendChild(b);
+  });
+  toast.hidden = false; renderMath(toast);
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, buttons.length ? 9000 : 4500);
+}
+document.getElementById('toastX').addEventListener('click', hideToast);
+
+/* ---------------- sidebar ---------------- */
+const clsList = document.getElementById('clsList');
+function renderSide() {
+  clsList.innerHTML = CLASSES.map((c, i) => {
+    const n = upcoming(c)[0];
+    const sub = n ? `${n.name} · ${countdown(daysTo(n.date))[1].toLowerCase()}` : 'No tests yet';
+    return `<button class="cls" data-i="${i}" aria-current="${i === cur}"><i style="background:${c.color}"></i><b>${esc(c.code)}</b><small>${esc(sub)}</small></button>`;
+  }).join('') || '<div class="empty" style="padding:4px 8px">No classes yet.</div>';
+}
+clsList.addEventListener('click', e => {
+  const b = e.target.closest('.cls'); if (!b || +b.dataset.i === cur) return;
+  cur = +b.dataset.i; editing = confirmDelete = false; edit = null; viewExam = null; if (quiz && quiz.c !== C()) quiz = null; render();
+});
+function showAddClass() {
+  const btn = document.getElementById('addCls'); if (!btn) return;
+  btn.outerHTML = `<form class="form" id="newCls" style="padding:8px;margin-top:8px;grid-template-columns:1fr">
+    <label>Class code<input id="newClsCode" placeholder="HIST 150" required></label>
+    <label>Class name<input id="newClsName" placeholder="World History"></label>
+    <div style="display:flex;gap:8px"><button class="go">Add</button><button type="button" class="mini" id="cancelNew">Cancel</button></div></form>`;
+  const f = document.getElementById('newCls'); f.querySelector('input').focus();
+  document.getElementById('cancelNew').addEventListener('click', () => { f.outerHTML = '<button class="addcls" id="addCls">+ Add a class</button>'; wireAdd() });
+  f.addEventListener('submit', ev => { ev.preventDefault();
+    const code = document.getElementById('newClsCode').value.trim(), name = document.getElementById('newClsName').value.trim(); if (!code) return;
+    CLASSES.push({ ...blankClass(code, name), questions: [], quizzes: [] });
+    f.outerHTML = '<button class="addcls" id="addCls">+ Add a class</button>'; wireAdd();
+    cur = CLASSES.length - 1; tab = 'syllabus'; editing = confirmDelete = false; edit = null; quiz = null; render();
+    tell(`Made a space for ${code}. Upload the syllabus first and I'll find the test dates.`, 'happy');
+  });
+}
+const wireAdd = () => document.getElementById('addCls')?.addEventListener('click', showAddClass);
+wireAdd();
+
+/* ---------------- class header: edit + delete ---------------- */
+const chead = document.getElementById('chead');
+function renderHead() {
+  const c = C();
+  if (!c) { chead.innerHTML = '<div><h3>No classes yet</h3><p>Add a class on the left to get started.</p></div>'; return }
+  if (editing) {
+    chead.innerHTML = `<form class="form editcls" id="editForm">
+      <label>Class code<input id="eCode" value="${esc(c.code)}" required></label>
+      <label>Class name<input id="eName" value="${esc(c.name)}"></label>
+      <label style="grid-column:1/-1">Professor, time, room<input id="eMeta" value="${esc(c.meta)}" placeholder="Prof. Becker · MTWF 11:00 · Math 201"></label>
+      <div class="swatches" style="grid-column:1/-1" role="radiogroup" aria-label="Color">${COLORS.map(col => `<button type="button" class="sw" data-col="${col}" aria-pressed="${col === c.color}" style="background:${col}" aria-label="Color ${col}"></button>`).join('')}</div>
+      <div style="display:flex;gap:8px;grid-column:1/-1"><button class="go">Save</button><button type="button" class="mini" id="cancelEdit">Cancel</button></div></form>`;
+    return;
+  }
+  const n = upcoming(c)[0];
+  chead.innerHTML = `<div style="min-width:0"><h3>${esc(c.code)} · ${esc(c.name)}</h3><p>${esc(c.meta || 'Add the professor and class time with Edit')}</p></div>
+    <div class="cactions"><span class="next">${n ? `Next: ${esc(n.name)}, ${countdown(daysTo(n.date))[1].toLowerCase()}` : 'No tests scheduled'}</span>
+      <button class="mini" id="editCls">Edit</button><button class="mini danger" id="delCls">Delete</button></div>` +
+    (confirmDelete ? `<div class="confirm" role="alert"><span>Delete <b>${esc(c.code)}</b> with all its notes, tests, homework and quizzes? This can't be undone.</span>
+      <div style="display:flex;gap:8px"><button class="go danger" id="yesDel">Delete class</button><button class="mini" id="noDel">Keep it</button></div></div>` : '');
+}
+chead.addEventListener('click', e => {
+  const c = C(); if (!c) return;
+  if (e.target.id === 'editCls') { editing = true; confirmDelete = false; renderHead(); document.getElementById('eCode').focus() }
+  if (e.target.id === 'cancelEdit') { editing = false; renderHead() }
+  if (e.target.id === 'delCls') { confirmDelete = true; renderHead() }
+  if (e.target.id === 'noDel') { confirmDelete = false; renderHead() }
+  if (e.target.id === 'yesDel') {
+    const gone = c.code; CLASSES.splice(cur, 1); cur = Math.max(0, Math.min(cur, CLASSES.length - 1)); confirmDelete = false; quiz = null; edit = null;
+    render(); tell(`Deleted ${gone}.${CLASSES.length ? '' : ' Add a class whenever you\'re ready.'}`);
+  }
+  const sw = e.target.closest('.sw');
+  if (sw) chead.querySelectorAll('.sw').forEach(x => x.setAttribute('aria-pressed', x === sw));
+});
+chead.addEventListener('submit', e => {
+  e.preventDefault(); const c = C();
+  const code = document.getElementById('eCode').value.trim(); if (!code) return;
+  const old = c.code;
+  c.code = code; c.name = document.getElementById('eName').value.trim() || c.name; c.meta = document.getElementById('eMeta').value.trim();
+  c.color = chead.querySelector('.sw[aria-pressed="true"]')?.dataset.col || c.color;
+  editing = false; render(); tell(old === code ? `Saved the changes to ${code}.` : `Renamed ${old} to ${code}.`, 'happy');
+});
+
+/* ---------------- editing any item ---------------- */
+const FIELDS = {
+  found:     [[0, 'Kind (Test, Homework, Textbook)'], [1, 'Description'], ['pname', 'Name to add'], ['pdate', 'Date', 'date'], ['pcovers', 'Covers']],
+  books:     [['title', 'Title'], ['sub', 'Details (author, edition, file)'], ['assigned', 'Assigned chapters'], ['chapters', 'Number of chapters', 'number']],
+  notes:     [['n', 'Lecture #', 'number'], ['title', 'Title'], ['ch', 'Chapter', 'number'], ['iso', 'Date', 'date'], ['type', 'Type (PDF, photo, typed…)'],
+              ['tags', 'Topics, separated by commas', 'tags'], ['sum', 'Key points, one per line. Put math between $ signs, like $\\int x\\,dx$', 'lines']],
+  tests:     [['name', 'Test'], ['date', 'Date', 'date'], ['time', 'Time'], ['covers', 'Covers'], ['room', 'Room']],
+  pastTests: [['name', 'File name']],
+  hw:        [['name', 'Assignment'], ['due', 'Due', 'date'], ['file', 'File (optional)']],
+  questions: [['q', 'Question (math between $ signs)', 'area'], ['a0', 'Answer A'], ['a1', 'Answer B'], ['a2', 'Answer C'], ['c', 'Correct answer', 'correct'],
+              ['ch', 'Chapter', 'number'], ['topic', 'Topic'], ['why', 'Explanation', 'area']],
+};
+const NAMES = { exams: 'practice exam', found: 'item', books: 'textbook', notes: 'note', tests: 'test', pastTests: 'old test', hw: 'assignment', questions: 'question', quizzes: 'quiz result' };
+const listOf = (c, kind) => kind === 'found' ? c.syllabus.found : c[kind];
+const BLANK = {
+  found: () => ['Test', ''],
+  books: () => ({ title: '', sub: '', type: 'BOOK', chapters: 1, done: 1, assigned: '' }),
+  notes: c => ({ n: Math.max(0, ...c.notes.map(x => +x.n || 0)) + 1, ch: null, title: '', iso: TODAY_ISO, type: 'Typed notes', tags: [], sum: [] }),
+  tests: () => ({ name: '', date: plus(7), time: '', covers: '', room: '' }),
+  pastTests: () => ({ name: '' }),
+  hw: () => ({ name: '', due: plus(2), done: false }),
+  questions: () => ({ q: '', a: ['', '', ''], c: 0, ch: null, topic: '', why: '' }),
+};
+const PKEY = { pname: 'name', pdate: 'iso', pcovers: 'covers' };
+function getField(item, k) {
+  if (PKEY[k]) return item[2]?.[PKEY[k]] ?? '';
+  if (k === 'tags') return (item.tags || []).join(', ');
+  if (k === 'sum') return (item.sum || []).join('\n');
+  if (/^a\d$/.test(k)) return item.a[+k[1]] ?? '';
+  return item[k] ?? '';
+}
+function setField(item, k, type, v) {
+  if (PKEY[k]) { if (!v && !item[2]) return; item[2] = { ...(item[2] || {}), [PKEY[k]]: v.trim(), kind: item[0] }; return }
+  if (k === 'tags') item.tags = v.split(',').map(s => s.trim()).filter(Boolean);
+  else if (k === 'sum') item.sum = v.split('\n').map(s => s.trim()).filter(Boolean);
+  else if (/^a\d$/.test(k)) item.a[+k[1]] = v.trim();
+  else if (type === 'number' || type === 'correct') item[k] = v === '' ? null : +v;
+  else item[k] = typeof v === 'string' ? v.trim() : v;
+}
+function editForm(kind, i, item) {
+  return `<form class="form inline-edit" data-ekind="${kind}" data-ei="${i}">${FIELDS[kind].map(([k, label, type]) => {
+    const v = getField(item, k), id = `f_${kind}_${k}`;
+    if (type === 'lines' || type === 'area') return `<label style="grid-column:1/-1">${esc(label)}<textarea id="${id}" name="${k}" rows="${type === 'lines' ? 5 : 2}">${esc(v)}</textarea></label>`;
+    if (type === 'correct') return `<label>${esc(label)}<select id="${id}" name="${k}">${['A', 'B', 'C'].map((L, j) => `<option value="${j}"${+v === j ? ' selected' : ''}>${L}</option>`).join('')}</select></label>`;
+    return `<label>${esc(label)}<input id="${id}" name="${k}" type="${type === 'date' ? 'date' : type === 'number' ? 'number' : 'text'}" value="${esc(v)}"></label>`;
+  }).join('')}${kind === 'notes' || kind === 'questions' ? '<div class="full">Math uses LaTeX: <code>$\\frac{a}{b}$</code>, <code>$x^2$</code>, <code>$\\int_0^1 f(x)\\,dx$</code>.</div>' : ''}
+  <div style="display:flex;gap:8px;grid-column:1/-1"><button class="go">Save</button><button type="button" class="mini" data-cancel>Cancel</button></div></form>`;
+}
+const tools = (kind, i) => `<span class="rtools"><button class="x-btn" data-edit="${kind}:${i}" aria-label="Edit">✎</button><button class="x-btn" data-del="${kind}:${i}" aria-label="Delete">×</button></span>`;
+const isEditing = (kind, i) => edit && edit.kind === kind && edit.i === i;
+const addBtn = (kind, label) => `<button class="addrow" data-add="${kind}">+ ${label}</button>`;
+function startAdd(kind) {
+  const c = C(), list = listOf(c, kind);
+  list.push(BLANK[kind](c)); edit = { kind, i: list.length - 1, isNew: true }; renderPanel();
+  panel.querySelector('.inline-edit input, .inline-edit textarea')?.focus();
+}
+function removeItem(kind, i) {
+  const c = C(), list = listOf(c, kind), [item] = list.splice(i, 1);
+  if (edit && edit.kind === kind) edit = null;
+  render();
+  const label = item.name || item.title || item.scope || (Array.isArray(item) ? item[1] : '') || (item.q ? 'Question' : NAMES[kind]);
+  tell(`Deleted ${String(label).slice(0, 60)}.`, 'idle', [['Undo', () => { list.splice(i, 0, item); render() }]]);
+}
+
+/* ---------------- panel ---------------- */
+const panel = document.getElementById('panel');
+const dropzone = (kind, big, sm, accept, small) => `<label class="drop${small ? ' small' : ''}"><input type="file" class="fileIn" data-kind="${kind}" multiple accept="${accept}"><div><div class="big">${big}</div><div class="sm">${sm}</div></div><span class="pick">Choose files</span></label>`;
+/* ---------------- reading a real syllabus ---------------- */
+const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+const DATE_RE = /\b(?:(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?|(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?)\b/gi;
+const TEST_RE = /\b(midterm(?:\s+exam)?(?:\s*#?\s*\d+)?|final\s+exam|final|exam\s*#?\s*\d+|exam|test\s*#?\s*\d+|quiz\s*#?\s*\d+|quiz)\b/gi;
+const HW_RE = /\b(homework\s*#?\s*\d+|hw\s*#?\s*\d+|assignment\s*#?\s*\d+|problem\s+set\s*#?\s*\d+|project\s*#?\s*\d*|lab\s+report|essay|paper|homework|assignment)\b/gi;
+const BOOK_RE = /\b(required\s+(?:text(?:book)?|book)|textbook|text\s*:)/i;
+const COVERS_RE = /\b(?:ch(?:apters?|s?\.)?|sections?|§)\s*([\d.]+(?:\s*[–-]\s*[\d.]+)?(?:\s*(?:,|and|&)\s*[\d.]+(?:\s*[–-]\s*[\d.]+)?)*)/i;
+const titleCase = s => s.replace(/\s+/g, ' ').trim().replace(/\b\w/g, ch => ch.toUpperCase()).replace(/\bHw\b/, 'HW');
+
+function parseDate(m, today) {
+  let mo, d, y;
+  if (m[1]) { mo = MONTHS[m[1].slice(0, 3).toLowerCase()]; d = +m[2]; y = m[3] ? +m[3] : null }
+  else { mo = +m[4] - 1; d = +m[5]; y = m[6] ? +m[6] : null; if (y && y < 100) y += 2000 }
+  if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
+  if (!y) {  // no year written: pick the year that puts it closest to this term
+    y = today.getFullYear();
+    const t = new Date(y, mo, d, 12);
+    if (t - today < -150 * 864e5) y++; else if (t - today > 215 * 864e5) y--;
+  }
+  const dt = new Date(y, mo, d, 12);
+  return dt.getMonth() === mo ? dt : null;
+}
+function findInSyllabus(text, today) {
+  const lines = text.split(/\n+/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const found = [], seen = new Set();
+  let book = null;
+  lines.forEach((line, li) => {
+    if (!book && BOOK_RE.test(line) && line.length > 12) book = line.slice(0, 160);
+    for (const [re, kind] of [[TEST_RE, 'Test'], [HW_RE, 'Homework']]) {
+      const kws = [...line.matchAll(re)];
+      kws.forEach((kw, k) => {
+        const seg = line.slice(kw.index, k + 1 < kws.length ? kws[k + 1].index : line.length);
+        let dm = [...seg.matchAll(DATE_RE)][0];
+        if (!dm && kws.length === 1) dm = [...line.matchAll(DATE_RE)][0];
+        if (!dm && kws.length === 1 && li + 1 < lines.length && line.length < 40) dm = [...lines[li + 1].matchAll(DATE_RE)][0];  // date on the next line of a table
+        if (!dm) return;
+        const date = parseDate(dm, today); if (!date) return;
+        if (kind === 'Homework' && !/due|homework|hw|assignment|problem set/i.test(seg + line)) return;
+        const name = titleCase(kw[1]);
+        const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const key = kind + name.toLowerCase() + iso; if (seen.has(key)) return; seen.add(key);
+        const cov = (seg.match(COVERS_RE) || line.match(COVERS_RE) || [])[1];
+        found.push({ kind, name, iso, covers: cov ? `Ch. ${cov.trim()}` : '', line: line.slice(0, 180) });
+      });
+    }
+  });
+  found.sort((a, b) => a.iso.localeCompare(b.iso));
+  return { found, book };
+}
+
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+async function readFileText(f) {
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  if (['txt', 'md', 'text'].includes(ext)) return await f.text();
+  if (ext !== 'pdf' || !window.pdfjsLib) return null;
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+  let out = '';
+  for (let p = 1; p <= doc.numPages; p++) {
+    const tc = await (await doc.getPage(p)).getTextContent();
+    let lastY = null;
+    tc.items.forEach(it => {
+      const y = it.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2 && !out.endsWith('\n')) out += '\n';
+      else if (out && !/[\s]$/.test(out)) out += ' ';
+      out += it.str; if (it.hasEOL) out += '\n'; lastY = y;
+    });
+    out += '\n';
+  }
+  return out;
+}
+async function readSyllabus(c, f) {
+  const s = c.syllabus = { file: f.name, reading: true, real: true };
+  render();
+  let text = null;
+  try { text = await readFileText(f) } catch (e) { text = null }
+  s.reading = false; s.added = false;
+  if (text == null) { s.found = []; s.problem = 'I can only read PDF and plain text syllabi so far. Add the dates by hand with "+ Add an item", or save the syllabus as a PDF and drop it again.'; render(); return tell(s.problem) }
+  if (text.replace(/\s/g, '').length < 40) { s.found = []; s.problem = 'This PDF looks like a scan, so there\'s no text for me to read yet. Add the dates by hand with "+ Add an item".'; render(); return tell(s.problem) }
+  const { found, book } = findInSyllabus(text, TODAY);
+  s.found = found.map(x => [x.kind, `${x.name} · ${fmt(D(x.iso))}${x.covers ? ' · ' + x.covers : ''}`, { kind: x.kind, name: x.name, iso: x.iso, covers: x.covers }, x.line]);
+  if (book) s.found.push(['Textbook', book.replace(/^(required\s+)?(text(book)?|book)\s*:?\s*/i, ''), null, book]);
+  const t = found.filter(x => x.kind === 'Test').length, h = found.length - t;
+  if (!found.length) { s.problem = 'I read the whole syllabus but couldn\'t find any dated exams or assignments. If the schedule is on a separate page or website, add the dates with "+ Add an item".'; render(); return tell(s.problem) }
+  render();
+  tell(`Read ${f.name}. I found ${t} test${t === 1 ? '' : 's'} and ${h} homework date${h === 1 ? '' : 's'}. Each one shows the line I got it from. Check them, then hit "Add all".`, 'alert');
+}
+const noteDate = n => n.iso ? `${fmt(D(n.iso))}${n.iso === YESTERDAY_ISO ? ' (yesterday)' : n.iso === TODAY_ISO ? ' (today)' : ''}` : 'No date';
+
+function tabSyllabus(c) {
+  const s = c.syllabus;
+  const readZone = (big, sm) => dropzone('syllabus', big, sm, '.pdf,.txt,.md,.doc,.docx,image/*', !!s);
+  if (!s) return readZone('Drop your syllabus here', 'PDF works best. Whitney reads the text and pulls out every exam, quiz and homework date, with the line she found each one on.');
+  const legacy = !s.real && s.add;   // results from before Whitney could read files
+  const canAdd = s.real && !s.added && s.found?.some(f => f[2]?.iso);
+  return `<div class="rows"><div class="row"><div class="ico" style="background:${c.color}">SYL</div><div><div class="t">${esc(s.file)}</div><div class="m">${s.reading ? 'Whitney is reading it…' : s.real ? 'Read by Whitney' : 'Uploaded'}</div></div>
+      <div class="rright">${s.reading ? '<span class="pill warn">Reading…</span>' : '<span class="pill ok">Ready</span>'}<button class="x-btn" data-delsyl aria-label="Remove syllabus">×</button></div></div></div>` +
+    (s.problem ? `<div class="notice">${esc(s.problem)}</div>` : '') +
+    (legacy ? `<div class="notice">These results are made-up examples from an earlier version. They were <b>not</b> read from your file, so they can't be added. Drop your syllabus in the box below to have Whitney read it for real.</div>` : '') +
+    (s.found?.length ? `<h4 class="subh">${legacy ? 'Made-up examples' : 'What Whitney found'}</h4><div class="rows">${s.found.map((f, i) => isEditing('found', i) ? `<div class="row editing">${editForm('found', i, f)}</div>` :
+      `<div class="row${legacy ? ' legacy' : ''}"><div class="ico sq" style="font-size:.62rem">${esc(String(f[0]).toUpperCase().slice(0, 4))}</div><div><div class="t wrap">${esc(f[1])}</div>${f[3] ? `<div class="m quote">“${esc(f[3])}”</div>` : ''}</div>
+       <div class="rright"><span class="pill ${legacy ? 'dim' : s.added ? 'ok' : 'warn'}">${legacy ? 'Example' : s.added ? 'Added' : 'Check me'}</span>${tools('found', i)}</div></div>`).join('')}</div>` : '') +
+    (s.reading ? '' : addBtn('found', 'Add an item')) +
+    (canAdd ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px"><button class="go" id="addAll">Add all to ${esc(c.code)}</button><span class="m" style="color:var(--muted);font-size:.84rem">Adds the tests and homework to their tabs and sets reminders. You can edit any of them first.</span></div>` : '') +
+    (s.reading ? '' : `<h4 class="subh">Read it again</h4>` + readZone('Drop the syllabus again', 'Whitney replaces the list above with what she reads. Nothing else in this class changes.'));
+}
+function tabBooks(c) {
+  return dropzone('books', 'Drop a textbook here', 'PDF or EPUB. Whitney splits it into chapters so quizzes only use what you\'ve covered.', '.pdf,.epub', true) +
+    `<div class="rows" style="margin-top:12px">${c.books.map((b, i) => isEditing('books', i) ? `<div class="row editing">${editForm('books', i, b)}</div>` :
+      `<div class="row"><div class="ico" style="background:${c.color}">${esc(b.type || 'BOOK')}</div><div><div class="t">${esc(b.title || 'Untitled')}</div><div class="m">${esc(b.sub)}${b.assigned ? ' · ' + esc(b.assigned) : ''}</div><div class="prog"><i style="width:${Math.round(100 * (b.done || 0) / (b.chapters || 1))}%"></i></div><div class="m">${b.done || 0} of ${b.chapters || 1} chapters read in</div></div>
+       <div class="rright">${b.fileId ? '' : attachBtn('books', i)}${(b.done || 0) < (b.chapters || 1) ? '<span class="pill warn">Reading…</span>' : '<span class="pill ok">Ready</span>'}${tools('books', i)}</div></div>`).join('') || '<div class="empty">No textbooks yet.</div>'}</div>
+    ${addBtn('books', 'Add a textbook by hand')}`;
+}
+function noteLine(c, n) {
+  const i = c.notes.indexOf(n);
+  if (isEditing('notes', i)) return `<div class="row editing">${editForm('notes', i, n)}</div>`;
+  return `<div class="glect"><span><b>L${esc(n.n ?? '?')}</b> · ${esc(n.title || 'Untitled')} · <span class="muted">${n.iso ? fmt(D(n.iso), { month: 'short', day: 'numeric' }) : ''}${n.type ? ' · ' + esc(n.type) : ''}</span>${n.reading ? ' <span class="pill warn">Reading…</span>' : ''}</span>${tools('notes', i)}</div>`;
+}
+function tabNotes(c) {
+  const seg = `<div class="seg" role="group" aria-label="Organize notes"><button data-view="chapter" aria-pressed="${notesView === 'chapter'}">By chapter</button><button data-view="lecture" aria-pressed="${notesView === 'lecture'}">By lecture</button></div>`;
+  let body;
+  if (!c.notes.length) body = '<div class="empty">No notes yet. Drop a file above or type one in.</div>';
+  else if (notesView === 'chapter') {
+    const groups = {};
+    c.notes.forEach(n => { const k = n.ch ?? 'none'; (groups[k] = groups[k] || []).push(n) });
+    const keys = Object.keys(groups).sort((a, b) => a === 'none' ? 1 : b === 'none' ? -1 : a - b);
+    body = `<div class="groups">${keys.map(k => {
+      const list = groups[k].sort((a, b) => (a.n || 0) - (b.n || 0));
+      const title = k === 'none' ? 'No chapter yet' : `Chapter ${k}${c.chTitles[k] ? ` · ${c.chTitles[k]}` : ''}`;
+      const points = list.flatMap(n => n.sum || []);
+      const onTest = k === 'none' ? [] : upcoming(c).filter(t => coversCh(t.covers, k)).map(t => t.name);
+      const hasQ = c.questions.some(q => String(q.ch) === k);
+      return `<div class="group"><div class="ghead"><b>${esc(title)}</b>${onTest.length ? `<span class="pill warn">On ${esc(onTest.join(', '))}</span>` : ''}</div>
+        <div class="glist">${list.map(n => noteLine(c, n)).join('')}</div>
+        ${points.length ? bullets(points) : '<div class="empty">No key points yet. Use ✎ on a lecture to add them.</div>'}
+        ${k !== 'none' && hasQ ? `<div><button class="mini" data-quizch="${k}">Quiz me on chapter ${k}</button></div>` : ''}</div>`;
+    }).join('')}</div>`;
+  } else {
+    body = `<div class="rows">${c.notes.slice().sort((a, b) => (b.iso || '').localeCompare(a.iso || '')).map(n => {
+      const i = c.notes.indexOf(n), open = openNotes.has(n);
+      if (isEditing('notes', i)) return `<div class="row editing">${editForm('notes', i, n)}</div>`;
+      return `<div class="row note"><div class="ico sq">L${esc(n.n ?? '?')}</div><div><div class="t">Lecture ${esc(n.n ?? '?')} · ${esc(n.title || 'Untitled')}</div><div class="m">${noteDate(n)} · ${esc(n.type || '')}${n.ch ? ` · Ch. ${n.ch}` : ''}${n.cards ? ` · ${n.cards} flashcards` : ''}</div><div class="tags">${(n.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>${open ? `<div class="points">${bullets(n.sum || [])}</div>` : ''}</div>
+        <div class="rright">${n.reading ? '<span class="pill warn">Reading…</span>' : `<button class="mini" data-toggle="${i}">${open ? 'Hide points' : 'Key points'}</button>`}${tools('notes', i)}</div></div>`;
+    }).join('')}</div>`;
+  }
+  return dropzone('notes', 'Drop lecture notes here', 'PDF, slides, Word, typed notes, or photos of handwritten pages. Whitney sorts them by chapter and writes the math in LaTeX.', '.pdf,.ppt,.pptx,.key,.doc,.docx,.txt,.md,image/*', true) +
+    `<div class="notesbar"><div style="display:flex;gap:10px;align-items:center"><h4 class="subh" style="margin:0">${c.notes.length} lecture${c.notes.length === 1 ? '' : 's'}</h4>${addBtn('notes', 'Type a note')}</div>${seg}</div>` + body;
+}
+function tabTests(c) {
+  const list = [...c.tests].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  return `<div class="rows">${list.map(t => {
+      const i = c.tests.indexOf(t);
+      if (isEditing('tests', i)) return `<div class="row editing">${editForm('tests', i, t)}</div>`;
+      const [k, l] = t.date ? countdown(daysTo(t.date)) : ['dim', 'No date']; const d = t.date ? D(t.date) : null;
+      return `<div class="row"><div class="ico sq" style="font-size:.72rem;line-height:1.1;text-align:center">${d ? `${fmt(d, { month: 'short' }).toUpperCase()}<br><span style="font-size:1.05rem">${d.getDate()}</span>` : '?'}</div><div><div class="t">${esc(t.name || 'Untitled test')}</div><div class="m">${d ? fmt(d, { weekday: 'long' }) : 'No date'} · ${esc(t.time || 'Time TBD')}${t.room ? ' · ' + esc(t.room) : ''}</div><div class="tags"><span class="tag">Covers ${esc(t.covers || '—')}</span></div></div>
+        <div class="rright"><span class="pill ${k}">${l}</span>${tools('tests', i)}</div></div>`;
+    }).join('') || '<div class="empty">No test dates yet. Upload the syllabus and Whitney finds them, or add one.</div>'}</div>
+    ${addBtn('tests', 'Add a test')}<div class="m" style="color:var(--muted);font-size:.84rem;margin-top:6px">Whitney reminds you 7 days, 3 days and 1 day before, and the morning of.</div>
+    <div class="m" style="color:var(--muted);font-size:.84rem;margin-top:14px">Old tests and practice exams live in the Practice exams tab.</div>`;
+}
+function tabHw(c) {
+  const list = [...c.hw].sort((a, b) => a.done - b.done || (a.due || '9999').localeCompare(b.due || '9999'));
+  return dropzone('hw', 'Drop homework here', 'Assignment sheets or problem sets. Add the due date and Whitney reminds you the day before.', '.pdf,.doc,.docx,image/*', true) +
+    `<div class="rows" style="margin-top:12px">${list.map(h => {
+      const i = c.hw.indexOf(h);
+      if (isEditing('hw', i)) return `<div class="row editing">${editForm('hw', i, h)}</div>`;
+      const pill = h.done ? '<span class="pill ok">Done</span>' : !h.due ? `<input type="date" class="setdue" data-setdue="${i}" aria-label="Due date for ${esc(h.name)}">` : daysTo(h.due) < 0 ? '<span class="pill hot">Overdue</span>' : (() => { const [k, l] = countdown(daysTo(h.due)); return `<span class="pill ${k}">Due ${l.toLowerCase()}</span>` })();
+      return `<div class="row ${h.done ? 'done' : ''}"><div style="display:grid;place-items:center"><button class="chk" data-hw="${i}" aria-pressed="${h.done}" aria-label="Mark ${esc(h.name)} done">${h.done ? '✓' : ''}</button></div><div><div class="t">${esc(h.name || 'Untitled')}</div><div class="m">${h.due ? 'Due ' + fmt(D(h.due)) : 'No due date yet'}${h.file ? ' · ' + esc(h.file) : ''}</div></div><div class="rright">${pill}${tools('hw', i)}</div></div>`;
+    }).join('') || '<div class="empty">No homework yet.</div>'}</div>${addBtn('hw', 'Add homework')}`;
+}
+
+/* ---------------- quizzes + quiz mode ---------------- */
+function tabQuizzes(c) {
+  if (quiz && quiz.c === c) return quizView();
+  const chs = [...new Set(c.questions.filter(q => q.ch != null).map(q => q.ch))].sort((a, b) => a - b);
+  const weak = weakTopics(c);
+  const byCh = {};
+  c.questions.forEach((q, i) => { const k = q.ch ?? 'none'; (byCh[k] = byCh[k] || []).push([q, i]) });
+  const bank = Object.keys(byCh).sort((a, b) => a === 'none' ? 1 : b === 'none' ? -1 : a - b).map(k => `<div class="qgroup"><div class="subh" style="margin:10px 0 6px">${k === 'none' ? 'No chapter' : `Chapter ${k}${c.chTitles[k] ? ` · ${esc(c.chTitles[k])}` : ''}`}</div>
+    ${byCh[k].map(([q, i]) => isEditing('questions', i) ? `<div class="row editing">${editForm('questions', i, q)}</div>` :
+      `<div class="row qrow"><div><div class="t wrap">${esc(q.q || 'Empty question')}</div><div class="m">Answer: ${esc(q.a[q.c] ?? '')}${q.topic ? ` · ${esc(q.topic)}` : ''}</div></div><div class="rright">${tools('questions', i)}</div></div>`).join('')}</div>`).join('');
+  return (c.questions.length ? `<div class="qbuild"><div class="subh" style="margin:0 0 8px">Start a quiz</div>
+      <div class="chapterpick" role="group" aria-label="Chapters">${chs.map(ch => `<label class="chk-chip"><input type="checkbox" value="${ch}" checked> Ch. ${ch}${c.chTitles[ch] ? ` · ${esc(c.chTitles[ch])}` : ''}</label>`).join('')}</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+        <label class="m" style="display:flex;gap:6px;align-items:center;color:var(--muted)">Questions <select id="qCount" class="sel"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option><option value="99">All</option></select></label>
+        <button class="go" id="startQuiz">Start quiz mode</button>
+        ${weak.length ? `<button class="mini" id="weakQuiz">Just my weak spots (${esc(weak.join(', '))})</button>` : ''}
+      </div></div>` : '<div class="empty">No quiz questions yet. Add some below, or upload notes and Whitney will write them.</div>') +
+    (Object.keys(c.mastery).length ? `<h4 class="subh">How you're doing</h4><div class="mastery panelbars">${masteryBars(c)}</div>` : '') +
+    `<h4 class="subh">Past quizzes</h4><div class="rows">${c.quizzes.map((q, i) => { const pct = q.n ? q.right / q.n : 0;
+      return `<div class="row"><div class="ico sq" style="font-size:.9rem">${q.right}/${q.n}</div><div><div class="t">${esc(q.scope)}</div><div class="m">${fmt(D(q.iso))}${q.missed?.length ? ` · Missed: ${esc(q.missed.join(', '))}` : ' · No misses'}</div></div><div class="rright"><span class="pill ${pct === 1 ? 'ok' : pct >= .6 ? 'warn' : 'hot'}">${Math.round(pct * 100)}%</span><span class="rtools"><button class="x-btn" data-del="quizzes:${i}" aria-label="Delete">×</button></span></div></div>` }).join('') || '<div class="empty">No quizzes taken yet.</div>'}</div>
+    <h4 class="subh">Question bank · ${c.questions.length}</h4>${bank}${addBtn('questions', 'Add a question')}`;
+}
+function startQuiz(c, { chs = [], topics = [], count = 5, list = null, label = '' } = {}) {
+  let pool = list || c.questions.filter(q => q.q && q.a.every(Boolean));
+  if (!list) {
+    if (chs.length) { pool = pool.filter(q => chs.includes(q.ch)); label = label || cap(chLabel(chs)) }
+    else if (topics.length) { pool = pool.filter(q => topics.includes(q.topic)); label = label || 'Weak spots' }
+    else label = label || 'Mixed';
+    pool = [...pool].sort((a, b) => (c.mastery[a.topic] ?? .7) - (c.mastery[b.topic] ?? .7) || Math.random() - .5).slice(0, count);
+  }
+  if (!pool.length) return tell('There are no questions for that yet. Add some in the question bank.');
+  quiz = { c, qs: pool, i: 0, picks: [], label, done: false };
+  tab = 'quizzes'; edit = null; coach.mood = 'idle'; hideToast(); render();
+  panel.scrollIntoView({ block: 'nearest' });
+}
+function quizView() {
+  const { qs, i, picks, label, done } = quiz;
+  if (done) {
+    const right = picks.filter((p, k) => p === qs[k].c).length, n = qs.length, missedQs = qs.filter((q, k) => picks[k] !== q.c);
+    const msg = right === n ? 'Clean sweep. Meow!' : right / n >= .6 ? 'Nice work. A couple to tidy up.' : 'Good practice. Let\'s go over the misses.';
+    return `<div class="quiz results"><div class="qresult"><canvas id="quizCat" width="32" height="34"></canvas><div><div class="subh" style="margin:0">${esc(label)} · done</div><div class="score">${right} / ${n}</div><p>${msg}</p></div></div>
+      <div class="rows">${qs.map((q, k) => { const ok = picks[k] === q.c;
+        return `<div class="row"><div class="ico sq ${ok ? 'okc' : 'badc'}">${ok ? '✓' : '✗'}</div><div><div class="t wrap">${esc(q.q)}</div><div class="m">${ok ? `You said ${esc(q.a[picks[k]])}` : `You said ${esc(q.a[picks[k]])} · Answer: ${esc(q.a[q.c])}`}</div>${ok ? '' : `<div class="m">${esc(q.why || '')}</div>`}</div></div>` }).join('')}</div>
+      <div class="qbtns">${missedQs.length ? '<button class="go" data-retry>Retry the ones I missed</button>' : ''}<button class="mini" data-newquiz>New quiz</button><button class="mini" data-quit>Back to quizzes</button></div></div>`;
+  }
+  const q = qs[i], picked = picks[i];
+  const answered = picked != null, ok = picked === q.c;
+  return `<div class="quiz"><div class="qtop"><div><div class="subh" style="margin:0">Quiz mode · ${esc(label)}</div><b>Question ${i + 1} of ${qs.length}</b></div><button class="mini" data-quit>Exit quiz</button></div>
+    <div class="qprog"><i style="width:${Math.round(100 * (i + (answered ? 1 : 0)) / qs.length)}%"></i></div>
+    <div class="qbody"><canvas id="quizCat" width="32" height="34" aria-hidden="true"></canvas>
+      <div class="qcard"><div class="qtopic">${q.ch ? `Chapter ${q.ch}` : ''}${q.topic ? ` · ${esc(q.topic)}` : ''}</div>
+        <div class="qq">${esc(q.q)}</div>
+        <div class="choices">${q.a.map((a, k) => `<button class="choice${answered ? (k === q.c ? ' right' : k === picked ? ' wrong' : ' dim') : ''}" data-pick="${k}"${answered ? ' disabled' : ''}><span class="letter">${'ABC'[k]}</span><span class="ans">${esc(a)}</span></button>`).join('')}</div>
+        ${answered ? `<div class="explain ${ok ? 'ok' : 'bad'}"><b>${ok ? 'Correct!' : 'Not quite.'}</b> ${esc(q.why || '')}</div>
+          <button class="go" data-nextq>${i + 1 === qs.length ? 'See results' : 'Next question'} →</button>` : '<div class="m keys">Press 1, 2 or 3 to answer</div>'}
+      </div></div></div>`;
+}
+function pick(k) {
+  const q = quiz.qs[quiz.i]; if (quiz.picks[quiz.i] != null) return;
+  quiz.picks[quiz.i] = k;
+  const c = quiz.c, ok = k === q.c;
+  if (q.topic) c.mastery[q.topic] = Math.max(0, Math.min(1, (c.mastery[q.topic] ?? .7) + (ok ? .08 : -.08)));
+  coach.mood = ok ? 'happy' : 'idle';
+  renderPanel(); save();
+}
+function nextQ() {
+  if (quiz.i + 1 < quiz.qs.length) { quiz.i++; coach.mood = 'idle'; renderPanel(); return }
+  quiz.done = true;
+  const c = quiz.c, right = quiz.picks.filter((p, k) => p === quiz.qs[k].c).length;
+  const missed = [...new Set(quiz.qs.filter((q, k) => quiz.picks[k] !== q.c).map(q => q.topic).filter(Boolean))];
+  c.quizzes.unshift({ iso: TODAY_ISO, scope: quiz.label, right, n: quiz.qs.length, missed });
+  coach.mood = right === quiz.qs.length ? 'happy' : 'idle';
+  render();
+}
+document.addEventListener('keydown', e => {
+  if (!quiz || quiz.done || tab !== 'quizzes' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
+  if (['1', '2', '3'].includes(e.key)) { pick(+e.key - 1); e.preventDefault() }
+  if (e.key === 'Enter' && quiz.picks[quiz.i] != null) { nextQ(); e.preventDefault() }
+});
+
+/* ---------------- stored files (kept in this app, per item) ---------------- */
+const FileDB = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('studywhitney-files', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => { const t = db.transaction('files', mode); const r = fn(t.objectStore('files')); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error) });
+  };
+  return { put: (id, blob) => run('readwrite', s => s.put(blob, id)), get: id => run('readonly', s => s.get(id)) };
+})();
+const newFileId = () => 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+async function keepFile(item, f) {
+  try { const id = newFileId(); await FileDB.put(id, f); item.fileId = id; item.fileName = f.name; item.fileType = f.type || ''; save(); renderPanel() }
+  catch (e) { tell('I couldn\'t keep a copy of that file, so I can only use its name.') }
+}
+const attachBtn = (kind, i) => `<label class="mini attach">Attach file<input type="file" data-attach="${kind}:${i}" accept=".pdf,.txt,.md,image/*" hidden></label>`;
+
+/* ---------------- Mac app bridge: Claude, key, printing ---------------- */
+const appBridge = window.webkit?.messageHandlers?.app;
+let claudeReady = false;
+const pending = {};
+window.__keyStatus = ok => { claudeReady = !!ok; renderClaudeBox(); if (tab === 'practice') renderPanel() };
+window.__claudeDone = (id, text) => { const p = pending[id]; delete pending[id]; if (!p) return; try { p.res(JSON.parse(text)) } catch (e) { p.rej(new Error('Claude sent back something I couldn\'t read.')) } };
+function callClaude(body) {
+  return new Promise((res, rej) => {
+    if (!appBridge) return rej(new Error('Writing exams works in the StudyWhitney Mac app.'));
+    const id = 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
+    pending[id] = { res, rej };
+    appBridge.postMessage({ type: 'claude', id, body: JSON.stringify(body) });
+  });
+}
+function printHTML(html) {
+  if (appBridge) return appBridge.postMessage({ type: 'print', html });
+  const w = window.open(''); if (!w) return tell('Your browser blocked the print window.');
+  w.document.write(html); w.document.close(); setTimeout(() => w.print(), 1500);
+}
+function openHTML(html) { if (appBridge) appBridge.postMessage({ type: 'openHTML', html }); else printHTML(html) }
+
+const claudeBox = document.getElementById('claudeBox');
+let keyFormOpen = false;
+function renderClaudeBox() {
+  if (!claudeBox) return;
+  if (!appBridge) { claudeBox.hidden = true; return }
+  claudeBox.hidden = false;
+  claudeBox.innerHTML = keyFormOpen
+    ? `<form id="keyForm" class="keyform"><label>Claude API key<input id="keyIn" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+       <div class="m">Get one at console.anthropic.com → API keys. It's saved in your Mac's Keychain.</div>
+       <div style="display:flex;gap:6px"><button class="go">Save</button><button type="button" class="mini" id="keyCancel">Cancel</button></div></form>`
+    : `<div class="claude-status"><span><b>Claude</b> · ${claudeReady ? 'connected' : 'not set up'}</span>
+       <button class="mini" id="keyEdit">${claudeReady ? 'Change' : 'Set up'}</button>${claudeReady ? '<button class="x-btn" id="keyRemove" aria-label="Remove key">×</button>' : ''}</div>`;
+}
+claudeBox?.addEventListener('click', e => {
+  if (e.target.id === 'keyEdit') { keyFormOpen = true; renderClaudeBox(); document.getElementById('keyIn').focus() }
+  if (e.target.id === 'keyCancel') { keyFormOpen = false; renderClaudeBox() }
+  if (e.target.id === 'keyRemove') { appBridge.postMessage({ type: 'setKey', key: '' }); tell('Removed your Claude key.') }
+});
+claudeBox?.addEventListener('submit', e => {
+  e.preventDefault(); const v = document.getElementById('keyIn').value.trim();
+  if (!v.startsWith('sk-ant-')) return tell('That doesn\'t look like a Claude API key. They start with "sk-ant-".');
+  appBridge.postMessage({ type: 'setKey', key: v }); keyFormOpen = false; renderClaudeBox(); tell('Saved. I can write practice exams now.', 'happy');
+});
+if (appBridge) appBridge.postMessage({ type: 'keyStatus' });
+
+/* ---------------- reading PDFs page by page ---------------- */
+const pdfCache = {};
+async function openPdf(fileId) {
+  if (pdfCache[fileId]) return pdfCache[fileId];
+  const blob = await FileDB.get(fileId); if (!blob) throw new Error('missing');
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+  const texts = {};
+  const page = async i => {
+    if (texts[i] != null) return texts[i];
+    const tc = await (await doc.getPage(i)).getTextContent();
+    let out = '', lastY = null;
+    tc.items.forEach(it => {
+      const y = it.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2 && !out.endsWith('\n')) out += '\n';
+      else if (out && !/\s$/.test(out)) out += ' ';
+      out += it.str; if (it.hasEOL) out += '\n'; lastY = y;
+    });
+    return (texts[i] = out);
+  };
+  return (pdfCache[fileId] = { n: doc.numPages, page });
+}
+const SEC_HEAD = /(^|\n)\s*(\d{1,2}\.\d{1,2})\s+[A-Z]/g;
+async function findSection(pdf, sec, progress) {
+  const head = new RegExp(`(^|\\n)\\s*${sec.replace('.', '\\.')}\\s+[A-Z]`);
+  for (let i = 1; i <= pdf.n; i++) {
+    const t = await pdf.page(i);
+    if (i % 20 === 0) progress(`Looking for section ${sec} in your textbook… page ${i} of ${pdf.n}`);
+    if (!head.test(t)) continue;
+    if ((t.match(SEC_HEAD) || []).length > 4) continue;   // a contents or index page, not the section itself
+    const pages = [t];
+    for (let j = i + 1; j <= Math.min(pdf.n, i + 14); j++) {
+      const u = await pdf.page(j); pages.push(u);
+      if ([...u.matchAll(SEC_HEAD)].some(m => m[2] !== sec)) break;   // the next section starts here
+    }
+    return { start: i, end: i + pages.length - 1, text: pages.join('\n') };
+  }
+  return null;
+}
+function parsePages(s) {
+  const out = [];
+  String(s || '').split(',').forEach(part => {
+    const m = part.trim().match(/^(\d+)\s*(?:[-–]\s*(\d+))?$/); if (!m) return;
+    const a = +m[1], b = m[2] ? +m[2] : a;
+    for (let i = Math.min(a, b); i <= Math.max(a, b) && out.length < 60; i++) out.push(i);
+  });
+  return out;
+}
+const toBase64 = async blob => { const buf = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000)); return btoa(s) };
+
+/* ---------------- writing a practice exam ---------------- */
+const EXAM_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['title', 'instructions', 'questions', 'answer_key'],
+  properties: {
+    title: { type: 'string' }, instructions: { type: 'string' },
+    questions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['number', 'text', 'points', 'parts', 'choices'],
+      properties: { number: { type: 'integer' }, text: { type: 'string' }, points: { type: 'string' }, parts: { type: 'array', items: { type: 'string' } }, choices: { type: 'array', items: { type: 'string' } } } } },
+    answer_key: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['number', 'answer'], properties: { number: { type: 'integer' }, answer: { type: 'string' } } } },
+  },
+};
+const SYSTEM = `You write practice exams for a college student, using their own course materials.
+Every question must be answerable from the material provided, and every answer in the key must be correct. Work each problem out before writing it.
+Write all math in LaTeX: inline between $...$ and displayed between $$...$$. Never use \\( \\) or \\[ \\].
+Questions must not contain answers, hints toward the answer, or solutions. Put those only in answer_key.
+For multi-part questions, put the shared setup in "text" and each part in "parts" (without "(a)" labels). Use "choices" only for multiple-choice questions (without "A." labels); otherwise leave it empty. Use "points" for the point value if the style calls for one, otherwise an empty string.
+In answer_key, give the final answer and a short worked solution for each question, matched by number.`;
+
+let practiceBusy = false, practiceStatus = '', viewExam = null, showKey = false;
+async function generateExam(c, opts) {
+  practiceBusy = true; practiceStatus = 'Getting your materials ready…'; renderPanel();
+  const setStatus = s => { practiceStatus = s; const el = document.getElementById('practiceStatus'); if (el) el.textContent = s };
+  try {
+    const content = [], used = [];
+    if (opts.style != null) {
+      const p = c.pastTests[opts.style];
+      const blob = p?.fileId && await FileDB.get(p.fileId);
+      if (!blob) throw new Error(`Attach the file for "${p?.name}" first (Practice exams tab).`);
+      if (/pdf/i.test(blob.type) || /\.pdf$/i.test(p.fileName || p.name)) {
+        if (blob.size > 30e6) throw new Error('That practice exam is over 30 MB, which is too big to send.');
+        content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await toBase64(blob) }, title: p.name });
+      } else if (/^image\//.test(blob.type)) {
+        content.push({ type: 'image', source: { type: 'base64', media_type: blob.type, data: await toBase64(blob) } });
+      } else content.push({ type: 'text', text: `Practice exam "${p.name}":\n${await blob.text()}` });
+      used.push(`style of ${p.name}`);
+    }
+    const sections = (opts.sections || '').split(/[,;]|\s+and\s+/).map(s => s.trim()).filter(s => /^\d{1,2}\.\d{1,2}$/.test(s));
+    const pages = parsePages(opts.pages);
+    if (sections.length || pages.length) {
+      const b = c.books[opts.book];
+      if (!b?.fileId) throw new Error('Attach the textbook PDF first (Textbooks tab), so I can read those sections.');
+      const pdf = await openPdf(b.fileId);
+      if (pages.length) {
+        setStatus(`Reading pages ${pages[0]}–${pages[pages.length - 1]} of ${b.title}…`);
+        const txt = []; for (const i of pages.filter(i => i <= pdf.n)) txt.push(`[page ${i}]\n` + await pdf.page(i));
+        content.push({ type: 'text', text: `Textbook "${b.title}", pages ${opts.pages}:\n${txt.join('\n')}` });
+        used.push(`pages ${opts.pages}`);
+      }
+      for (const sec of sections) {
+        if (pages.length) break;
+        setStatus(`Looking for section ${sec} in your textbook…`);
+        const found = await findSection(pdf, sec, setStatus);
+        if (!found) throw new Error(`I couldn't find section ${sec} in ${b.title}. Type its page numbers in "Pages" instead.`);
+        content.push({ type: 'text', text: `Textbook "${b.title}", section ${sec} (PDF pages ${found.start}–${found.end}):\n${found.text}` });
+        used.push(`§${sec}`);
+      }
+    }
+    const chs = [...new Set(sections.map(s => +s.split('.')[0]))];
+    if (opts.notes) {
+      const pts = c.notes.filter(n => n.sum?.length && (!chs.length || chs.includes(+n.ch))).flatMap(n => [`Lecture ${n.n}: ${n.title}`, ...n.sum.map(s => '- ' + s)]);
+      if (pts.length) content.push({ type: 'text', text: `The student's lecture notes:\n${pts.join('\n')}` });
+    }
+    if (!content.length) throw new Error('Pick a practice exam to copy the style of, or some textbook sections.');
+    content.push({ type: 'text', text: [
+      `Write a new practice exam for ${c.code} ${c.name}.`,
+      opts.style != null ? 'Match the attached practice exam closely: the same kinds of questions, format, length, point values and difficulty, but with new problems. Do not copy its questions.' : '',
+      sections.length || pages.length ? `Cover ${sections.length ? 'textbook sections ' + sections.join(', ') : 'the textbook pages above'}. Base the questions on that material.` : '',
+      `Number of questions: ${opts.count || (opts.style != null ? 'the same as the attached exam' : '8')}.`,
+      `Difficulty: ${opts.level}. Question style: ${opts.kind}.`,
+    ].filter(Boolean).join('\n') });
+
+    setStatus('Whitney is writing your exam. This usually takes a minute or two…');
+    const resp = await callClaude({
+      model: 'claude-opus-5-5', max_tokens: 16000, fallbacks: 'default',
+      output_config: { effort: 'high', format: { type: 'json_schema', schema: EXAM_SCHEMA } },
+      system: SYSTEM, messages: [{ role: 'user', content }],
+    });
+    if (resp.type === 'error' || resp.error) throw new Error(friendlyError(resp.error));
+    if (resp.stop_reason === 'refusal') throw new Error('Claude declined to write this exam. Try different material.');
+    if (resp.stop_reason === 'max_tokens') throw new Error('The exam came out too long. Ask for fewer questions.');
+    const txt = (resp.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const exam = JSON.parse(txt);
+    exam.created = TODAY_ISO; exam.source = used.join(' · ') || 'notes';
+    (c.exams = c.exams || []).unshift(exam); viewExam = 0; showKey = false;
+    practiceBusy = false; practiceStatus = ''; render();
+    tell(`Your practice exam is ready: ${exam.questions.length} questions. Print it, then check the answer key when you're done.`, 'happy');
+  } catch (e) {
+    practiceBusy = false; practiceStatus = ''; render();
+    tell(e.message || 'Something went wrong writing the exam.');
+  }
+}
+function friendlyError(err) {
+  const t = err?.type || '', m = err?.message || '';
+  if (t === 'authentication_error') return 'Claude didn\'t accept your API key. Check it under "Claude" in the sidebar.';
+  if (t === 'rate_limit_error') return 'Claude is busy right now. Try again in a minute.';
+  if (t === 'overloaded_error') return 'Claude is overloaded right now. Try again in a minute.';
+  if (/credit|billing/i.test(m)) return 'Your Claude account is out of credit. Add some at console.anthropic.com.';
+  return m || 'Claude returned an error.';
+}
+
+/* ---------------- printable pages ---------------- */
+const nl = s => esc(s).replace(/\n/g, '<br>');
+function examHTML(c, ex, mode) {   // mode: 'questions' | 'key'
+  const qs = ex.questions.map(q => `<div class="q"><div><span class="n">${q.number}.</span> ${nl(q.text)}${q.points ? ` <span class="pts">(${esc(q.points)})</span>` : ''}</div>
+    ${q.parts?.length ? `<ol class="parts">${q.parts.map(p => `<li>${nl(p)}${q.choices?.length ? '' : '<div class="space sm"></div>'}</li>`).join('')}</ol>` : ''}
+    ${q.choices?.length ? `<ol class="choices">${q.choices.map(ch => `<li>${nl(ch)}</li>`).join('')}</ol>` : (q.parts?.length ? '' : '<div class="space"></div>')}</div>`).join('');
+  const key = ex.answer_key.map(a => `<div class="q"><span class="n">${a.number}.</span> ${nl(a.answer)}</div>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(ex.title)}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"><\/script>
+<style>
+  @page { margin: 0.75in }
+  body { font: 12pt/1.5 "Times New Roman", Georgia, serif; color: #000; background: #fff; margin: 0 auto; max-width: 7in; padding: 0.4in 0 }
+  h1 { font-size: 17pt; margin: 0 0 4pt }
+  .meta { display: flex; justify-content: space-between; border-bottom: 1.5pt solid #000; padding-bottom: 6pt; margin-bottom: 12pt; font-size: 11pt }
+  .inst { font-style: italic; margin-bottom: 16pt }
+  .q { margin: 0 0 16pt; break-inside: avoid } .n { font-weight: bold } .pts { color: #333; font-size: 10.5pt }
+  ol.parts { list-style: lower-alpha; margin: 6pt 0 0 } ol.choices { list-style: upper-alpha; margin: 6pt 0 0 }
+  .space { height: 1.7in } .space.sm { height: 1in }
+  .katex { font-size: 1.05em }
+</style></head><body>
+<h1>${esc(ex.title)}${mode === 'key' ? ' · Answer key' : ''}</h1>
+<div class="meta"><span>${esc(c.code)} · ${esc(c.name)}</span><span>${mode === 'key' ? '' : 'Name: ______________________'}</span></div>
+${mode === 'key' ? key : `<div class="inst">${nl(ex.instructions)}</div>${qs}`}
+<script>try { renderMathInElement(document.body, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }) } catch (e) {}<\/script>
+</body></html>`;
+}
+
+/* ---------------- the Practice exams tab ---------------- */
+function tabPractice(c) {
+  c.exams = c.exams || [];
+  if (viewExam != null && c.exams[viewExam]) {
+    const ex = c.exams[viewExam];
+    return `<div class="exam-view"><div class="qtop"><div><div class="subh" style="margin:0">Practice exam · ${fmt(D(ex.created))}</div><b>${esc(ex.title)}</b></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="go" data-print="questions">Print questions</button><button class="mini" data-print="key">Print answer key</button><button class="mini" data-closeexam>Back</button></div></div>
+      <div class="m" style="color:var(--muted)">${esc(ex.instructions)}</div>
+      <div class="paper">${ex.questions.map(q => `<div class="pq"><div><b>${q.number}.</b> ${esc(q.text)}${q.points ? ` <span class="muted">(${esc(q.points)})</span>` : ''}</div>
+        ${q.parts?.length ? `<ol class="pparts">${q.parts.map(p => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}
+        ${q.choices?.length ? `<ol class="pchoices">${q.choices.map(ch => `<li>${esc(ch)}</li>`).join('')}</ol>` : ''}
+        ${showKey ? `<div class="pkey">${esc(ex.answer_key.find(a => a.number === q.number)?.answer || '')}</div>` : ''}</div>`).join('')}</div>
+      <button class="mini" data-togglekey>${showKey ? 'Hide answers' : 'Show answers'}</button></div>`;
+  }
+  const exams = c.pastTests.map((p, i) => [p, i]);
+  const books = c.books.map((b, i) => [b, i]);
+  const ready = appBridge && claudeReady;
+  return `<div class="pgrid">
+    <div class="maker"><div class="subh" style="margin:0 0 4px">Make a practice exam</div>
+      ${!appBridge ? '<div class="notice">Writing practice exams works in the StudyWhitney Mac app.</div>' : !claudeReady ? '<div class="notice">Set up Claude first: click <b>Set up</b> next to "Claude" at the bottom of the class list and paste your API key.</div>' : ''}
+      <form class="form maker-form" id="practiceForm">
+        <label style="grid-column:1/-1">Copy the style of
+          <select id="pStyle"><option value="">— Don't copy an exam —</option>${exams.map(([p, i]) => `<option value="${i}"${p.fileId ? '' : ' disabled'}>${esc(p.name)}${p.fileId ? '' : ' (attach the file first)'}</option>`).join('')}</select></label>
+        <label>Textbook sections<input id="pSections" placeholder="12.3, 12.4"></label>
+        <label>or PDF pages<input id="pPages" placeholder="812-830"></label>
+        <label style="grid-column:1/-1">From textbook
+          <select id="pBook">${books.length ? books.map(([b, i]) => `<option value="${i}"${b.fileId ? '' : ' disabled'}>${esc(b.title)}${b.fileId ? '' : ' (attach the PDF first)'}</option>`).join('') : '<option value="">No textbooks yet</option>'}</select></label>
+        <label>Questions<input id="pCount" type="number" min="1" max="40" placeholder="Same as the exam"></label>
+        <label>Difficulty<select id="pLevel"><option>the same as the source</option><option>a bit easier</option><option>a bit harder</option></select></label>
+        <label>Question style<select id="pKind"><option>mixed, like a real exam</option><option>free response, show your work</option><option>multiple choice</option></select></label>
+        <label class="inline-check"><input type="checkbox" id="pNotes" checked> Use my lecture notes too</label>
+        <div style="grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="go" id="pGo"${!ready || practiceBusy ? ' disabled' : ''}>${practiceBusy ? 'Writing…' : 'Write practice exam'}</button>
+          <span class="m" id="practiceStatus" style="color:var(--muted);font-size:.84rem">${esc(practiceStatus || 'Uses Claude. Each exam costs roughly 10–40¢ on your API account.')}</span></div>
+      </form></div>
+    <div><div class="subh" style="margin:0 0 8px">Your practice exams · uploaded</div>` +
+      dropzone('pastTests', 'Drop practice exams here', 'Old exams or practice tests (PDF works best). Whitney copies their style.', '.pdf,.txt,.md,image/*', true) +
+      `<div class="rows" style="margin-top:10px">${c.pastTests.map((p, i) => isEditing('pastTests', i) ? `<div class="row editing">${editForm('pastTests', i, p)}</div>` :
+        `<div class="row"><div class="ico" style="background:${c.color}">TEST</div><div><div class="t">${esc(p.name || 'Untitled')}</div><div class="m">${p.fileId ? 'File saved · ready to copy' : 'Only the name is saved. Attach the file to use it.'}</div></div><div class="rright">${p.fileId ? '<span class="pill ok">Ready</span>' : attachBtn('pastTests', i)}${tools('pastTests', i)}</div></div>`).join('') || '<div class="empty">None yet.</div>'}</div>
+      <div class="subh" style="margin:18px 0 8px">Written by Whitney</div>
+      <div class="rows">${c.exams.map((ex, i) => `<div class="row"><div class="ico sq" style="font-size:.85rem">${ex.questions.length}Q</div><div><div class="t">${esc(ex.title)}</div><div class="m">${fmt(D(ex.created))} · ${esc(ex.source || '')}</div></div>
+        <div class="rright"><button class="mini" data-openexam="${i}">Open</button><button class="mini" data-printexam="${i}">Print</button><span class="rtools"><button class="x-btn" data-del="exams:${i}" aria-label="Delete">×</button></span></div></div>`).join('') || '<div class="empty">No practice exams written yet.</div>'}</div>
+    </div></div>`;
+}
+
+/* ---------------- render ---------------- */
+function renderPanel() {
+  const c = C();
+  if (!c) { panel.innerHTML = '<div class="empty" style="padding:30px 4px">Your classes will show up here. Add one on the left, then upload its syllabus and notes.</div>'; return }
+  panel.innerHTML = { syllabus: tabSyllabus, books: tabBooks, notes: tabNotes, quizzes: tabQuizzes, practice: tabPractice, tests: tabTests, hw: tabHw }[tab](c);
+  renderMath(panel);
+}
+function render() {
+  const c = C();
+  renderSide(); renderHead();
+  document.getElementById('tabs').hidden = !c;
+  if (c) document.querySelectorAll('.tab').forEach(t => {
+    t.setAttribute('aria-selected', t.dataset.tab === tab);
+    const counts = { syllabus: c.syllabus ? '✓' : '–', books: c.books.length, notes: c.notes.length, quizzes: quiz && quiz.c === c ? '●' : c.quizzes.length, practice: c.pastTests.length + (c.exams || []).length, tests: c.tests.length, hw: c.hw.filter(h => !h.done).length };
+    t.querySelector('.n').textContent = counts[t.dataset.tab];
+  });
+  renderPanel();
+  save();
+}
+document.getElementById('tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (!t) return; tab = t.dataset.tab; edit = null; render() });
+
+/* ---------------- uploads ---------------- */
+function addFiles(files, kind) {
+  const c = C(); files = [...files]; if (!files.length || !c) return;
+  const later = fn => setTimeout(() => { fn(); render() }, 1800);
+  files.forEach(f => {
+    const base = f.name.replace(/\.[^.]+$/, ''), ext = (f.name.split('.').pop() || '').toUpperCase().slice(0, 4);
+    if (kind === 'syllabus') {
+      readSyllabus(c, f); keepFile(c.syllabus, f);
+    } else if (kind === 'books') {
+      const b = { title: base, sub: `${ext} · ${(f.size / 1048576).toFixed(1)} MB`, type: ext, chapters: 1, done: 0, assigned: '' };
+      c.books.unshift(b); keepFile(b, f); later(() => { b.done = 1 });
+    } else if (kind === 'notes') {
+      const n = { n: Math.max(0, ...c.notes.map(x => +x.n || 0)) + 1, ch: null, title: base, iso: TODAY_ISO, type: f.type.startsWith('image/') ? 'Photo' : ext, tags: [], reading: true, sum: [] };
+      c.notes.unshift(n); keepFile(n, f); later(() => { n.reading = false });
+    } else if (kind === 'pastTests') {
+      const p = { name: f.name, reading: true }; c.pastTests.unshift(p); keepFile(p, f); later(() => { p.reading = false });
+    } else if (kind === 'hw') {
+      const h = { name: base, due: '', done: false, file: f.name }; c.hw.unshift(h); keepFile(h, f);
+    }
+  });
+  render();
+  const what = files.length === 1 ? `"${files[0].name}"` : `${files.length} files`;
+  tell({
+    syllabus: `Reading ${what} for test and homework dates…`,
+    hw: `Got ${what}. Set the due date and I'll remind you the day before.`,
+    pastTests: `Got ${what}. Pick it under "Copy the style of" to get a similar practice exam.`,
+    notes: `Got ${what}. Use ✎ to set its chapter and key points. Soon I'll do that part myself.`,
+  }[kind] || `Got ${what} for ${c.code}.`, 'happy');
+}
+
+/* ---------------- panel events ---------------- */
+panel.addEventListener('change', e => {
+  if (e.target.classList.contains('fileIn')) addFiles(e.target.files, e.target.dataset.kind);
+  if (e.target.dataset.attach && e.target.files[0]) { const [kind, i] = e.target.dataset.attach.split(':'); const item = listOf(C(), kind)[+i]; keepFile(item, e.target.files[0]).then(() => tell(`Attached ${e.target.files[0].name}.`, 'happy')) }
+  if (e.target.dataset.setdue !== undefined && e.target.value) {
+    const h = C().hw[+e.target.dataset.setdue]; h.due = e.target.value; render();
+    tell(`${h.name} is due ${fmt(D(h.due))}. I'll nudge you the day before.`, 'happy');
+  }
+});
+panel.addEventListener('dragover', e => { const d = e.target.closest('.drop'); if (d) { e.preventDefault(); d.classList.add('over') } });
+panel.addEventListener('dragleave', e => { const d = e.target.closest('.drop'); if (d) d.classList.remove('over') });
+panel.addEventListener('drop', e => { const d = e.target.closest('.drop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); addFiles(e.dataTransfer.files, d.querySelector('.fileIn').dataset.kind) });
+panel.addEventListener('click', e => {
+  const c = C(); if (!c) return;
+  const q = sel => e.target.closest(sel);
+  if (q('[data-edit]')) { const [kind, i] = q('[data-edit]').dataset.edit.split(':'); edit = { kind, i: +i }; renderPanel(); panel.querySelector('.inline-edit input, .inline-edit textarea')?.focus(); return }
+  if (q('[data-del]')) { const [kind, i] = q('[data-del]').dataset.del.split(':'); removeItem(kind, +i); return }
+  if (q('[data-add]')) { startAdd(q('[data-add]').dataset.add); return }
+  if (q('[data-cancel]')) { if (edit?.isNew) listOf(c, edit.kind).splice(edit.i, 1); edit = null; renderPanel(); return }
+  if (q('[data-delsyl]')) { const s = c.syllabus; c.syllabus = null; render(); tell('Removed the syllabus.', 'idle', [['Undo', () => { c.syllabus = s; render() }]]); return }
+  if (e.target.id === 'addAll') {
+    const s = c.syllabus; let t = 0, h = 0;
+    s.found.forEach(f => {
+      const p = f[2];
+      if (String(f[0]).toLowerCase().startsWith('text') && !c.books.some(b => b.title === f[1])) c.books.push({ title: f[1], sub: 'From the syllabus', type: 'BOOK', chapters: 1, done: 1, assigned: '' });
+      if (!p?.iso) return;
+      if (/test|exam|quiz/i.test(f[0])) { if (!c.tests.some(x => x.name === p.name && x.date === p.iso)) { c.tests.push({ name: p.name, date: p.iso, time: '', covers: p.covers || '', room: '' }); t++ } }
+      else if (!c.hw.some(x => x.name === p.name && x.due === p.iso)) { c.hw.push({ name: p.name, due: p.iso, done: false }); h++ }
+    });
+    s.added = true; render();
+    tell(`Added ${t} test${t === 1 ? '' : 's'} and ${h} homework date${h === 1 ? '' : 's'} to ${c.code}. Reminders are set.`, 'happy');
+  }
+  if (q('[data-view]')) { notesView = q('[data-view]').dataset.view; edit = null; renderPanel() }
+  if (q('[data-toggle]')) { const n = c.notes[+q('[data-toggle]').dataset.toggle]; openNotes.has(n) ? openNotes.delete(n) : openNotes.add(n); renderPanel() }
+  if (q('[data-quizch]')) startQuiz(c, { chs: [+q('[data-quizch]').dataset.quizch] });
+  if (e.target.id === 'startQuiz') {
+    const chs = [...panel.querySelectorAll('.chapterpick input:checked')].map(x => +x.value);
+    if (!chs.length) return tell('Pick at least one chapter first.');
+    startQuiz(c, { chs, count: +document.getElementById('qCount').value });
+  }
+  if (e.target.id === 'weakQuiz') startQuiz(c, { topics: weakTopics(c), count: 5 });
+  if (q('[data-pick]')) pick(+q('[data-pick]').dataset.pick);
+  if (q('[data-openexam]')) { viewExam = +q('[data-openexam]').dataset.openexam; showKey = false; renderPanel() }
+  if (q('[data-closeexam]')) { viewExam = null; renderPanel() }
+  if (q('[data-togglekey]')) { showKey = !showKey; renderPanel() }
+  if (q('[data-print]')) printHTML(examHTML(c, c.exams[viewExam], q('[data-print]').dataset.print));
+  if (q('[data-printexam]')) printHTML(examHTML(c, c.exams[+q('[data-printexam]').dataset.printexam], 'questions'));
+  if (q('[data-nextq]')) nextQ();
+  if (q('[data-quit]')) { quiz = null; coach.mood = 'idle'; render() }
+  if (q('[data-newquiz]')) { quiz = null; render() }
+  if (q('[data-retry]')) { const missed = quiz.qs.filter((x, k) => quiz.picks[k] !== x.c); startQuiz(c, { list: missed, label: 'Retry missed' }) }
+  if (q('[data-hw]')) { const h = c.hw[+q('[data-hw]').dataset.hw]; h.done = !h.done; render();
+    const left = c.hw.filter(x => !x.done).length;
+    if (h.done) tell(`Nice. ${left ? `${left} to go in ${c.code}.` : `${c.code} homework is all done!`}`, 'happy') }
+});
+panel.addEventListener('submit', e => {
+  e.preventDefault(); const c = C(), f = e.target;
+  if (f.id === 'practiceForm') {
+    if (practiceBusy) return;
+    const v = id => document.getElementById(id).value;
+    return generateExam(c, { style: v('pStyle') === '' ? null : +v('pStyle'), sections: v('pSections'), pages: v('pPages'), book: +v('pBook') || 0,
+      count: +v('pCount') || 0, level: v('pLevel'), kind: v('pKind'), notes: document.getElementById('pNotes').checked });
+  }
+  if (!f.classList.contains('inline-edit')) return;
+  const kind = f.dataset.ekind, i = +f.dataset.ei, item = listOf(c, kind)[i];
+  FIELDS[kind].forEach(([k, , type]) => setField(item, k, type, f.elements[k].value));
+  const first = getField(item, FIELDS[kind][0][0]);
+  if (kind === 'questions' && (!item.q || item.a.some(a => !a))) return tell('A question needs the question and all three answers.');
+  if (kind !== 'questions' && kind !== 'notes' && String(first).trim() === '') return tell('Give it a name first.');
+  if (kind === 'notes' && !item.title) return tell('Give the note a title first.');
+  if (kind === 'books') item.done = item.chapters = Math.max(1, item.chapters || 1);
+  if (kind === 'found' && item[2]) { item[2].kind = item[0]; if (!item[2].name) item[2].name = item[1]; c.syllabus.real = true; c.syllabus.added = false }
+  const wasNew = edit?.isNew; edit = null; render();
+  if (kind === 'tests' && item.date) {
+    const d = daysTo(item.date);
+    const when = [7, 3, 1].filter(x => d - x >= 0).map(x => fmt(new Date(D(item.date) - x * 864e5), { month: 'short', day: 'numeric' }));
+    tell(d < 0 ? `Saved ${item.name}. That date already passed.` : `Saved ${item.name}, ${d === 0 ? 'today' : d === 1 ? 'tomorrow' : d + ' days away'}. I'll remind you${when.length ? ' on ' + when.join(', ') + ',' : ''} and the morning of.`, d <= 7 ? 'alert' : 'happy');
+  } else tell(`${wasNew ? 'Added' : 'Saved'} the ${NAMES[kind]}.`, 'happy');
+});
+render();
+
+/* bridge for the desktop Whitney (Mac app) */
+const petToggle = document.getElementById('petToggle');
+window.__petVisible = on => { document.getElementById('petSwitch').hidden = false; petToggle.setAttribute('aria-checked', on) };
+if (window.webkit?.messageHandlers?.app) {
+  document.getElementById('petSwitch').hidden = false;
+  petToggle.addEventListener('click', () => window.webkit.messageHandlers.app.postMessage({ type: 'togglePet' }));
+}
+window.__petData = () => JSON.stringify(CLASSES.map(c => ({ code: c.code, tests: c.tests, hw: c.hw })));
+window.__openFromPet = ({ code, ask } = {}) => {
+  const i = CLASSES.findIndex(c => c.code === code);
+  if (i >= 0 && i !== cur) { cur = i; editing = confirmDelete = false; edit = null; if (quiz && quiz.c !== C()) quiz = null }
+  const a = (ask || '').toLowerCase();
+  document.querySelector('.app').scrollIntoView({ block: 'start' });
+  if (/quiz/.test(a) && C()) return startQuiz(C(), {});
+  if (/review|score/.test(a)) tab = 'quizzes';
+  else if (/help/.test(a)) tab = 'hw';
+  render();
+};
+
+/* ---------------- diagrams ---------------- */
+const dark = document.documentElement.dataset.theme === 'dark' ||
+  (document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict' });
+</script>
+</body>
+</html>
