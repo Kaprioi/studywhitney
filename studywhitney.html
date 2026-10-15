@@ -366,7 +366,7 @@ header { margin-bottom: 28px }
   <div class="sec-head">
     <div class="eyebrow">The app window</div>
     <h2>Your class desk</h2>
-    <p>Each class has six tabs: syllabus, textbooks, notes, quizzes, tests and homework. You can rename or delete a class with the buttons at the top. Upload anything and Whitney reads it. Everything can be added, edited (✎) and deleted (×). The Quizzes tab has a quiz mode that takes you through one question at a time. Your changes are saved in this browser.</p>
+    <p>Each class has tabs for the syllabus, textbooks, notes, quizzes, practice exams, tests, homework and a to-do list. In the Mac app, to-dos can go straight to Apple Reminders or Calendar. You can rename or delete a class with the buttons at the top. Upload anything and Whitney reads it. Everything can be added, edited (✎) and deleted (×). The Quizzes tab has a quiz mode that takes you through one question at a time. Your changes are saved in this browser.</p>
   </div>
   <div class="app">
     <div class="app-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="ttl">StudyWhitney · Class desk</span></div>
@@ -388,6 +388,7 @@ header { margin-bottom: 28px }
           <button class="tab" role="tab" data-tab="practice">Practice exams<span class="n"></span></button>
           <button class="tab" role="tab" data-tab="tests">Tests<span class="n"></span></button>
           <button class="tab" role="tab" data-tab="hw">Homework<span class="n"></span></button>
+          <button class="tab" role="tab" data-tab="todo">To-do<span class="n"></span></button>
         </div>
         <div id="panel" role="tabpanel"></div>
       </div>
@@ -934,7 +935,7 @@ try {
 } catch (e) {}
 function save() { try { localStorage.setItem(STORE, JSON.stringify({ classes: CLASSES, cur })) } catch (e) {} }
 const blankClass = (code, name) => ({ code, name: name || 'New class', meta: '', color: COLORS[CLASSES.length % COLORS.length], suggestCh: 'chapter 1',
-  chTitles: {}, syllabus: null, books: [], notes: [], tests: [], pastTests: [], hw: [], quizzes: [], mastery: {} });
+  chTitles: {}, syllabus: null, books: [], notes: [], tests: [], pastTests: [], hw: [], todos: [], quizzes: [], mastery: {} });
 
 const C = () => CLASSES[cur];
 const bankOf = c => BANK[c.bank || c.code] || [];
@@ -953,7 +954,7 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 /* Each class owns its quiz questions, so they can be added and edited */
 CLASSES.forEach(c => {
   if (!c.questions) c.questions = bankOf(c).map(q => ({ ...q, a: [...q.a] }));
-  c.quizzes = c.quizzes || []; c.chTitles = c.chTitles || {}; c.mastery = c.mastery || {};
+  c.quizzes = c.quizzes || []; c.todos = c.todos || []; c.chTitles = c.chTitles || {}; c.mastery = c.mastery || {};
 });
 let edit = null;        // the item being edited: { kind, i, isNew }
 let quiz = null;        // the quiz in progress
@@ -1077,10 +1078,11 @@ const FIELDS = {
   tests:     [['name', 'Test'], ['date', 'Date', 'date'], ['time', 'Time'], ['covers', 'Covers'], ['room', 'Room']],
   pastTests: [['name', 'File name']],
   hw:        [['name', 'Assignment'], ['due', 'Due', 'date'], ['file', 'File (optional)']],
+  todos:     [['name', 'To-do'], ['due', 'Due', 'date'], ['time', 'Time (optional)', 'time'], ['to', 'Also add to', 'sendto']],
   questions: [['q', 'Question (math between $ signs)', 'area'], ['a0', 'Answer A'], ['a1', 'Answer B'], ['a2', 'Answer C'], ['c', 'Correct answer', 'correct'],
               ['ch', 'Chapter', 'number'], ['topic', 'Topic'], ['why', 'Explanation', 'area']],
 };
-const NAMES = { exams: 'practice exam', found: 'item', books: 'textbook', notes: 'note', tests: 'test', pastTests: 'old test', hw: 'assignment', questions: 'question', quizzes: 'quiz result' };
+const NAMES = { exams: 'practice exam', found: 'item', books: 'textbook', notes: 'note', tests: 'test', pastTests: 'old test', hw: 'assignment', todos: 'to-do', questions: 'question', quizzes: 'quiz result' };
 const listOf = (c, kind) => kind === 'found' ? c.syllabus.found : c[kind];
 const BLANK = {
   found: () => ['Test', ''],
@@ -1089,6 +1091,7 @@ const BLANK = {
   tests: () => ({ name: '', date: plus(7), time: '', covers: '', room: '' }),
   pastTests: () => ({ name: '' }),
   hw: () => ({ name: '', due: plus(2), done: false }),
+  todos: () => ({ key: 'td' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '', due: plus(1), time: '', to: mac ? 'reminders' : 'none', done: false }),
   questions: () => ({ q: '', a: ['', '', ''], c: 0, ch: null, topic: '', why: '' }),
 };
 const PKEY = { pname: 'name', pdate: 'iso', pcovers: 'covers' };
@@ -1111,9 +1114,10 @@ function editForm(kind, i, item) {
   return `<form class="form inline-edit" data-ekind="${kind}" data-ei="${i}">${FIELDS[kind].map(([k, label, type]) => {
     const v = getField(item, k), id = `f_${kind}_${k}`;
     if (type === 'lines' || type === 'area') return `<label style="grid-column:1/-1">${esc(label)}<textarea id="${id}" name="${k}" rows="${type === 'lines' ? 5 : 2}">${esc(v)}</textarea></label>`;
+    if (type === 'sendto') return `<label>${esc(label)}<select id="${id}" name="${k}">${Object.entries(SEND_TO).map(([val, txt]) => `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`).join('')}</select></label>`;
     if (type === 'correct') return `<label>${esc(label)}<select id="${id}" name="${k}">${['A', 'B', 'C'].map((L, j) => `<option value="${j}"${+v === j ? ' selected' : ''}>${L}</option>`).join('')}</select></label>`;
-    return `<label>${esc(label)}<input id="${id}" name="${k}" type="${type === 'date' ? 'date' : type === 'number' ? 'number' : 'text'}" value="${esc(v)}"></label>`;
-  }).join('')}${kind === 'notes' || kind === 'questions' ? '<div class="full">Math uses LaTeX: <code>$\\frac{a}{b}$</code>, <code>$x^2$</code>, <code>$\\int_0^1 f(x)\\,dx$</code>.</div>' : ''}
+    return `<label>${esc(label)}<input id="${id}" name="${k}" type="${type === 'date' || type === 'time' ? type : type === 'number' ? 'number' : 'text'}" value="${esc(v)}"></label>`;
+  }).join('')}${kind === 'todos' && !mac ? '<div class="full">Reminders and Calendar work in the StudyWhitney Mac app.</div>' : ''}${kind === 'notes' || kind === 'questions' ? '<div class="full">Math uses LaTeX: <code>$\\frac{a}{b}$</code>, <code>$x^2$</code>, <code>$\\int_0^1 f(x)\\,dx$</code>.</div>' : ''}
   <div style="display:flex;gap:8px;grid-column:1/-1"><button class="go">Save</button><button type="button" class="mini" data-cancel>Cancel</button></div></form>`;
 }
 const tools = (kind, i) => `<span class="rtools"><button class="x-btn" data-edit="${kind}:${i}" aria-label="Edit">✎</button><button class="x-btn" data-del="${kind}:${i}" aria-label="Delete">×</button></span>`;
@@ -1127,9 +1131,10 @@ function startAdd(kind) {
 function removeItem(kind, i) {
   const c = C(), list = listOf(c, kind), [item] = list.splice(i, 1);
   if (edit && edit.kind === kind) edit = null;
+  if (kind === 'todos') unsyncTodo(item);
   render();
   const label = item.name || item.title || item.scope || (Array.isArray(item) ? item[1] : '') || (item.q ? 'Question' : NAMES[kind]);
-  tell(`Deleted ${String(label).slice(0, 60)}.`, 'idle', [['Undo', () => { list.splice(i, 0, item); render() }]]);
+  tell(`Deleted ${String(label).slice(0, 60)}.`, 'idle', [['Undo', () => { list.splice(i, 0, item); render(); if (kind === 'todos') syncTodo(c, item) }]]);
 }
 
 /* ---------------- panel ---------------- */
@@ -1303,6 +1308,46 @@ function tabHw(c) {
       const pill = h.done ? '<span class="pill ok">Done</span>' : !h.due ? `<input type="date" class="setdue" data-setdue="${i}" aria-label="Due date for ${esc(h.name)}">` : daysTo(h.due) < 0 ? '<span class="pill hot">Overdue</span>' : (() => { const [k, l] = countdown(daysTo(h.due)); return `<span class="pill ${k}">Due ${l.toLowerCase()}</span>` })();
       return `<div class="row ${h.done ? 'done' : ''}"><div style="display:grid;place-items:center"><button class="chk" data-hw="${i}" aria-pressed="${h.done}" aria-label="Mark ${esc(h.name)} done">${h.done ? '✓' : ''}</button></div><div><div class="t">${esc(h.name || 'Untitled')}</div><div class="m">${h.due ? 'Due ' + fmt(D(h.due)) : 'No due date yet'}${h.file ? ' · ' + esc(h.file) : ''}</div></div><div class="rright">${pill}${tools('hw', i)}</div></div>`;
     }).join('') || '<div class="empty">No homework yet.</div>'}</div>${addBtn('hw', 'Add homework')}`;
+}
+
+/* ---------------- to-do list (Mac app: Apple Reminders + Calendar) ---------------- */
+const mac = window.webkit?.messageHandlers?.app;
+const SEND_TO = { reminders: 'Reminders', calendar: 'Calendar', both: 'Reminders and Calendar', none: 'Just StudyWhitney' };
+const clock = t => { const [h, m] = t.split(':').map(Number); return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) };
+function syncTodo(c, t, announce = false) {
+  if (!mac) return;
+  if (t.to === 'none' && !t.rid && !t.eid) return;
+  mac.postMessage({ type: 'todoSync', key: t.key, title: `${t.name} (${c.code})`, notes: `From StudyWhitney · ${c.code} ${c.name}`,
+    due: t.due || '', time: t.time || '', to: t.to, done: !!t.done, reminderId: t.rid || '', eventId: t.eid || '', announce });
+}
+function unsyncTodo(t) {
+  if (mac && (t.rid || t.eid)) mac.postMessage({ type: 'todoRemove', reminderId: t.rid || '', eventId: t.eid || '' });
+  t.rid = t.eid = '';
+}
+const findTodo = pred => { for (const c of CLASSES) { const t = (c.todos || []).find(pred); if (t) return t } };
+window.__todoSynced = r => {
+  const t = findTodo(x => x.key === r.key); if (!t) return;
+  t.rid = r.reminderId; t.eid = r.eventId; save();
+  if (r.error) return tell(r.error, 'alert');
+  if (r.announce && r.to !== 'none') tell(`Added ${t.name} to ${SEND_TO[r.to]}.`, 'happy');
+};
+window.__todoIds = () => JSON.stringify(CLASSES.flatMap(c => (c.todos || []).filter(t => !t.done && t.rid).map(t => t.rid)));
+window.__todoDone = ids => {
+  ids.forEach(id => { const t = findTodo(x => x.rid === id); if (t) t.done = true });
+  render();
+};
+function tabTodo(c) {
+  const list = [...c.todos].sort((a, b) => a.done - b.done || ((a.due || '9999') + (a.time || '')).localeCompare((b.due || '9999') + (b.time || '')));
+  return `<div class="m" style="color:var(--muted);font-size:.88rem;margin-bottom:10px">${mac
+      ? 'Anything you have to do for this class. Pick Reminders or Calendar and Whitney adds it there too. Check it off in either place.'
+      : 'Anything you have to do for this class. In the Mac app, to-dos can also go to Apple Reminders or Calendar.'}</div>
+    <div class="rows">${list.map(t => {
+      const i = c.todos.indexOf(t);
+      if (isEditing('todos', i)) return `<div class="row editing">${editForm('todos', i, t)}</div>`;
+      const pill = t.done ? '<span class="pill ok">Done</span>' : !t.due ? '' : daysTo(t.due) < 0 ? '<span class="pill hot">Overdue</span>' : (() => { const [k, l] = countdown(daysTo(t.due)); return `<span class="pill ${k}">${l}</span>` })();
+      const where = mac && t.to !== 'none' ? ` · ${t.rid || t.eid ? 'In' : 'Adding to'} ${SEND_TO[t.to]}` : '';
+      return `<div class="row ${t.done ? 'done' : ''}"><div style="display:grid;place-items:center"><button class="chk" data-todo="${i}" aria-pressed="${t.done}" aria-label="Mark ${esc(t.name)} done">${t.done ? '✓' : ''}</button></div><div><div class="t">${esc(t.name || 'Untitled')}</div><div class="m">${t.due ? 'Due ' + fmt(D(t.due)) : 'No due date'}${t.time ? ' at ' + clock(t.time) : ''}${where}</div></div><div class="rright">${pill}${tools('todos', i)}</div></div>`;
+    }).join('') || '<div class="empty">Nothing to do yet. Add a to-do below.</div>'}</div>${addBtn('todos', 'Add a to-do')}`;
 }
 
 /* ---------------- quizzes + quiz mode ---------------- */
@@ -1678,7 +1723,7 @@ function tabPractice(c) {
 function renderPanel() {
   const c = C();
   if (!c) { panel.innerHTML = '<div class="empty" style="padding:30px 4px">Your classes will show up here. Add one on the left, then upload its syllabus and notes.</div>'; return }
-  panel.innerHTML = { syllabus: tabSyllabus, books: tabBooks, notes: tabNotes, quizzes: tabQuizzes, practice: tabPractice, tests: tabTests, hw: tabHw }[tab](c);
+  panel.innerHTML = { syllabus: tabSyllabus, books: tabBooks, notes: tabNotes, quizzes: tabQuizzes, practice: tabPractice, tests: tabTests, hw: tabHw, todo: tabTodo }[tab](c);
   renderMath(panel);
 }
 function render() {
@@ -1687,7 +1732,7 @@ function render() {
   document.getElementById('tabs').hidden = !c;
   if (c) document.querySelectorAll('.tab').forEach(t => {
     t.setAttribute('aria-selected', t.dataset.tab === tab);
-    const counts = { syllabus: c.syllabus ? '✓' : '–', books: c.books.length, notes: c.notes.length, quizzes: quiz && quiz.c === c ? '●' : c.quizzes.length, practice: c.pastTests.length + (c.exams || []).length, tests: c.tests.length, hw: c.hw.filter(h => !h.done).length };
+    const counts = { syllabus: c.syllabus ? '✓' : '–', books: c.books.length, notes: c.notes.length, quizzes: quiz && quiz.c === c ? '●' : c.quizzes.length, practice: c.pastTests.length + (c.exams || []).length, tests: c.tests.length, hw: c.hw.filter(h => !h.done).length, todo: c.todos.filter(t => !t.done).length };
     t.querySelector('.n').textContent = counts[t.dataset.tab];
   });
   renderPanel();
@@ -1776,6 +1821,9 @@ panel.addEventListener('click', e => {
   if (q('[data-quit]')) { quiz = null; coach.mood = 'idle'; render() }
   if (q('[data-newquiz]')) { quiz = null; render() }
   if (q('[data-retry]')) { const missed = quiz.qs.filter((x, k) => quiz.picks[k] !== x.c); startQuiz(c, { list: missed, label: 'Retry missed' }) }
+  if (q('[data-todo]')) { const t = c.todos[+q('[data-todo]').dataset.todo]; t.done = !t.done; render(); syncTodo(c, t);
+    const left = c.todos.filter(x => !x.done).length;
+    if (t.done) tell(`Checked off. ${left ? `${left} left for ${c.code}.` : `Your ${c.code} to-do list is clear!`}`, 'happy') }
   if (q('[data-hw]')) { const h = c.hw[+q('[data-hw]').dataset.hw]; h.done = !h.done; render();
     const left = c.hw.filter(x => !x.done).length;
     if (h.done) tell(`Nice. ${left ? `${left} to go in ${c.code}.` : `${c.code} homework is all done!`}`, 'happy') }
@@ -1798,6 +1846,7 @@ panel.addEventListener('submit', e => {
   if (kind === 'books') item.done = item.chapters = Math.max(1, item.chapters || 1);
   if (kind === 'found' && item[2]) { item[2].kind = item[0]; if (!item[2].name) item[2].name = item[1]; c.syllabus.real = true; c.syllabus.added = false }
   const wasNew = edit?.isNew; edit = null; render();
+  if (kind === 'todos') { syncTodo(c, item, true); if (mac && item.to !== 'none') return }
   if (kind === 'tests' && item.date) {
     const d = daysTo(item.date);
     const when = [7, 3, 1].filter(x => d - x >= 0).map(x => fmt(new Date(D(item.date) - x * 864e5), { month: 'short', day: 'numeric' }));

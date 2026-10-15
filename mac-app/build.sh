@@ -4,7 +4,7 @@ set -e
 cd "${0:A:h}"
 APP=build/StudyWhitney.app
 rm -rf build && mkdir -p $APP/Contents/MacOS $APP/Contents/Resources icon.iconset
-swiftc -O -swift-version 5 main.swift -o $APP/Contents/MacOS/StudyWhitney -framework Cocoa -framework WebKit
+swiftc -O -swift-version 5 main.swift -o $APP/Contents/MacOS/StudyWhitney -framework Cocoa -framework WebKit -framework EventKit
 node icon.js ../studywhitney.html icon-1024.png
 for s in 16 32 128 256 512; do
   sips -z $s $s icon-1024.png --out icon.iconset/icon_${s}x${s}.png >/dev/null
@@ -28,11 +28,15 @@ cat > $APP/Contents/Info.plist <<'PLIST'
   <key>CFBundleExecutable</key><string>StudyWhitney</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2</string>
-  <key>CFBundleVersion</key><string>2</string>
+  <key>CFBundleShortVersionString</key><string>0.3</string>
+  <key>CFBundleVersion</key><string>3</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSRemindersUsageDescription</key><string>StudyWhitney adds your to-dos to Reminders.</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>StudyWhitney adds your to-dos to Reminders and checks them off when you finish them there.</string>
+  <key>NSCalendarsUsageDescription</key><string>StudyWhitney puts your to-dos on your calendar.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key><string>StudyWhitney puts your to-dos on your calendar.</string>
 </dict></plist>
 PLIST
 codesign --force --deep -s - $APP
