@@ -1,5 +1,6 @@
 import Cocoa
 import WebKit
+import EventKit
 
 /// Web view that reacts to the first click even when the app isn't active,
 /// so Whitney can be petted without focusing StudyWhitney first.
@@ -34,6 +35,101 @@ func jsString(_ s: String) -> String {
     return String(arr.dropFirst().dropLast())
 }
 
+/// To-dos go to Apple Reminders and/or Calendar through EventKit. macOS asks for access once for each.
+final class AppleSync {
+    let store = EKEventStore()
+
+    func access(_ type: EKEntityType, _ done: @escaping (Bool) -> Void) {
+        let finish: (Bool, Error?) -> Void = { ok, _ in DispatchQueue.main.async { done(ok) } }
+        if #available(macOS 14.0, *) {
+            if type == .reminder { store.requestFullAccessToReminders(completion: finish) } else { store.requestFullAccessToEvents(completion: finish) }
+        } else { store.requestAccess(to: type, completion: finish) }
+    }
+
+    /// Creates, updates or removes the reminder and calendar event for one to-do, then reports the new identifiers.
+    func sync(_ t: [String: Any], reply: @escaping ([String: Any]) -> Void) {
+        let to = t["to"] as? String ?? "none"
+        var out: [String: Any] = ["key": t["key"] as? String ?? "", "announce": t["announce"] as? Bool ?? false, "to": to]
+        var errors: [String] = []
+        step(.reminder, want: to == "reminders" || to == "both", id: t["reminderId"] as? String, t) { id, err in
+            out["reminderId"] = id ?? ""; if let err { errors.append(err) }
+            self.step(.event, want: to == "calendar" || to == "both", id: t["eventId"] as? String, t) { id, err in
+                out["eventId"] = id ?? ""; if let err { errors.append(err) }
+                out["error"] = errors.joined(separator: " ")
+                reply(out)
+            }
+        }
+    }
+
+    func remove(reminderId: String, eventId: String) {
+        if let r = item(reminderId) as? EKReminder { try? store.remove(r, commit: true) }
+        if let e = item(eventId) as? EKEvent { try? store.remove(e, span: .thisEvent, commit: true) }
+    }
+
+    /// The reminders among these identifiers that were checked off in the Reminders app.
+    func completed(_ ids: [String]) -> [String] {
+        ids.filter { (item($0) as? EKReminder)?.isCompleted == true }
+    }
+
+    private func item(_ id: String?) -> EKCalendarItem? {
+        guard let id, !id.isEmpty else { return nil }
+        return store.calendarItem(withIdentifier: id)
+    }
+
+    private func step(_ type: EKEntityType, want: Bool, id: String?, _ t: [String: Any], done: @escaping (String?, String?) -> Void) {
+        guard want else {
+            if type == .reminder { remove(reminderId: id ?? "", eventId: "") } else { remove(reminderId: "", eventId: id ?? "") }
+            return done(nil, nil)
+        }
+        access(type) { ok in
+            guard ok else {
+                let app = type == .reminder ? "Reminders" : "Calendars"
+                return done(id, "StudyWhitney can't reach \(app) yet. Turn it on in System Settings → Privacy & Security → \(app).")
+            }
+            do { done(try self.save(type, existing: self.item(id), t), nil) } catch { done(id, error.localizedDescription) }
+        }
+    }
+
+    private func save(_ type: EKEntityType, existing: EKCalendarItem?, _ t: [String: Any]) throws -> String {
+        let title = t["title"] as? String ?? "To-do", notes = t["notes"] as? String ?? ""
+        let ymd = (t["due"] as? String ?? "").split(separator: "-").compactMap { Int($0) }
+        let hm = (t["time"] as? String ?? "").split(separator: ":").compactMap { Int($0) }
+        let cal = Calendar.current
+        var at = DateComponents()
+        if ymd.count == 3 { at.year = ymd[0]; at.month = ymd[1]; at.day = ymd[2] }
+        if hm.count == 2 { at.hour = hm[0]; at.minute = hm[1] }
+
+        if type == .reminder {
+            let r = existing as? EKReminder ?? EKReminder(eventStore: store)
+            if r.calendar == nil { r.calendar = store.defaultCalendarForNewReminders() }
+            r.title = title; r.notes = notes
+            r.isCompleted = t["done"] as? Bool ?? false
+            r.dueDateComponents = ymd.count == 3 ? at : nil
+            r.alarms?.forEach { r.removeAlarm($0) }
+            if ymd.count == 3 {
+                var ring = at; if hm.count != 2 { ring.hour = 9; ring.minute = 0 }  // date only: nudge at 9 that morning
+                if let d = cal.date(from: ring) { r.addAlarm(EKAlarm(absoluteDate: d)) }
+            }
+            try store.save(r, commit: true)
+            return r.calendarItemIdentifier
+        }
+
+        guard ymd.count == 3, let start = cal.date(from: at) else {
+            throw NSError(domain: "StudyWhitney", code: 1, userInfo: [NSLocalizedDescriptionKey: "Add a due date to put it on your calendar."])
+        }
+        let e = existing as? EKEvent ?? EKEvent(eventStore: store)
+        if e.calendar == nil { e.calendar = store.defaultCalendarForNewEvents }
+        e.title = title; e.notes = notes
+        e.isAllDay = hm.count != 2
+        e.startDate = start
+        e.endDate = e.isAllDay ? start : start.addingTimeInterval(3600)
+        e.alarms?.forEach { e.removeAlarm($0) }
+        if !e.isAllDay { e.addAlarm(EKAlarm(relativeOffset: -1800)) }
+        try store.save(e, span: .thisEvent, commit: true)
+        return e.calendarItemIdentifier
+    }
+}
+
 /// Floating strip above the Dock. Transparent everywhere except Whitney and her bubble.
 final class PetPanel: NSPanel {
     override var canBecomeKey: Bool { false }
@@ -54,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     var printWindow: NSWindow?
     var printWeb: WKWebView?
     var petFloor: CGFloat = 0
+    let apple = AppleSync()
 
     var petVisible: Bool {
         get { UserDefaults.standard.object(forKey: "petVisible") as? Bool ?? true }
@@ -86,6 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.contentView = web
+        let z = UserDefaults.standard.double(forKey: "pageZoom"); if z > 0 { web.pageZoom = z }
         window.center()
         window.setFrameAutosaveName("StudyWhitneyMain")
         window.makeKeyAndOrderFront(nil)
@@ -202,6 +300,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
             case "claude": callClaude(id: body["id"] as? String ?? "", body: body["body"] as? String ?? "{}")
             case "print": printHTML(body["html"] as? String ?? "")
             case "openHTML": openHTMLInBrowser(body["html"] as? String ?? "")
+            case "todoSync": apple.sync(body) { [weak self] out in self?.callJS("__todoSynced", out) }
+            case "todoRemove": apple.remove(reminderId: body["reminderId"] as? String ?? "", eventId: body["eventId"] as? String ?? "")
             default: break
             }
             return
@@ -224,6 +324,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
                 web.evaluateJavaScript("window.__openFromPet && window.__openFromPet(\(json))", completionHandler: nil)
             }
         default: break
+        }
+    }
+
+    func callJS(_ fn: String, _ value: Any) {
+        guard let data = try? JSONSerialization.data(withJSONObject: value), let json = String(data: data, encoding: .utf8) else { return }
+        web.evaluateJavaScript("window.\(fn) && window.\(fn)(\(json))", completionHandler: nil)
+    }
+
+    // Anything checked off in the Reminders app is checked off here too.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        web?.evaluateJavaScript("window.__todoIds ? window.__todoIds() : '[]'") { [weak self] result, _ in
+            guard let self, let json = result as? String,
+                  let ids = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String], !ids.isEmpty else { return }
+            let done = self.apple.completed(ids)
+            if !done.isEmpty { self.callJS("__todoDone", done) }
         }
     }
 
@@ -346,6 +461,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
 
     @objc func reload(_ sender: Any?) { web.reload() }
 
+    // Cmd+ / Cmd- / Cmd+0 make everything bigger or smaller, and the size is remembered
+    func setZoom(_ z: Double) {
+        web.pageZoom = min(3, max(0.5, (z * 10).rounded() / 10))
+        UserDefaults.standard.set(web.pageZoom, forKey: "pageZoom")
+    }
+    @objc func zoomIn(_ sender: Any?) { setZoom(web.pageZoom + 0.1) }
+    @objc func zoomOut(_ sender: Any?) { setZoom(web.pageZoom - 0.1) }
+    @objc func actualSize(_ sender: Any?) { setZoom(1) }
+
     // MARK: main menu
 
     func buildMenu() {
@@ -379,13 +503,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         let viewItem = NSMenuItem(); main.addItem(viewItem)
         let view = NSMenu(title: "View")
         view.addItem(withTitle: "Reload", action: #selector(reload(_:)), keyEquivalent: "r")
+        view.addItem(.separator())
+        view.addItem(withTitle: "Zoom In", action: #selector(zoomIn(_:)), keyEquivalent: "=")
+        let plus = view.addItem(withTitle: "Zoom In", action: #selector(zoomIn(_:)), keyEquivalent: "+")
+        plus.isHidden = true; plus.allowsKeyEquivalentWhenHidden = true
+        view.addItem(withTitle: "Zoom Out", action: #selector(zoomOut(_:)), keyEquivalent: "-")
+        view.addItem(withTitle: "Actual Size", action: #selector(actualSize(_:)), keyEquivalent: "0")
         viewItem.submenu = view
 
         let winItem = NSMenuItem(); main.addItem(winItem)
         let win = NSMenu(title: "Window")
         win.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         win.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        win.addItem(withTitle: "StudyWhitney", action: #selector(showMain(_:)), keyEquivalent: "0")
+        win.addItem(withTitle: "StudyWhitney", action: #selector(showMain(_:)), keyEquivalent: "1")
         winItem.submenu = win
         NSApp.windowsMenu = win
 
