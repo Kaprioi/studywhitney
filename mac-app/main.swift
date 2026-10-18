@@ -183,6 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.contentView = web
+        let z = UserDefaults.standard.double(forKey: "pageZoom"); if z > 0 { web.pageZoom = z }
         window.center()
         window.setFrameAutosaveName("StudyWhitneyMain")
         window.makeKeyAndOrderFront(nil)
@@ -460,6 +461,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
 
     @objc func reload(_ sender: Any?) { web.reload() }
 
+    // Cmd+ / Cmd- / Cmd+0 make everything bigger or smaller, and the size is remembered
+    func setZoom(_ z: Double) {
+        web.pageZoom = min(3, max(0.5, (z * 10).rounded() / 10))
+        UserDefaults.standard.set(web.pageZoom, forKey: "pageZoom")
+    }
+    @objc func zoomIn(_ sender: Any?) { setZoom(web.pageZoom + 0.1) }
+    @objc func zoomOut(_ sender: Any?) { setZoom(web.pageZoom - 0.1) }
+    @objc func actualSize(_ sender: Any?) { setZoom(1) }
+
     // MARK: main menu
 
     func buildMenu() {
@@ -493,13 +503,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         let viewItem = NSMenuItem(); main.addItem(viewItem)
         let view = NSMenu(title: "View")
         view.addItem(withTitle: "Reload", action: #selector(reload(_:)), keyEquivalent: "r")
+        view.addItem(.separator())
+        view.addItem(withTitle: "Zoom In", action: #selector(zoomIn(_:)), keyEquivalent: "=")
+        let plus = view.addItem(withTitle: "Zoom In", action: #selector(zoomIn(_:)), keyEquivalent: "+")
+        plus.isHidden = true; plus.allowsKeyEquivalentWhenHidden = true
+        view.addItem(withTitle: "Zoom Out", action: #selector(zoomOut(_:)), keyEquivalent: "-")
+        view.addItem(withTitle: "Actual Size", action: #selector(actualSize(_:)), keyEquivalent: "0")
         viewItem.submenu = view
 
         let winItem = NSMenuItem(); main.addItem(winItem)
         let win = NSMenu(title: "Window")
         win.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         win.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        win.addItem(withTitle: "StudyWhitney", action: #selector(showMain(_:)), keyEquivalent: "0")
+        win.addItem(withTitle: "StudyWhitney", action: #selector(showMain(_:)), keyEquivalent: "1")
         winItem.submenu = win
         NSApp.windowsMenu = win
 

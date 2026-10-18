@@ -2,7 +2,7 @@
 
 <img src="docs/icon.png" width="96" align="right" alt="Whitney">
 
-**A study app for your Mac, with a little pixel cat named Whitney who keeps you on track.**
+**A study app for your Mac, with a little pixel Doberman named Whitney who keeps you on track.**
 
 Add your classes, drop in your syllabus and notes, and StudyWhitney keeps everything organized, quizzes you, makes practice exams, and reminds you before tests.
 
@@ -12,7 +12,7 @@ Add your classes, drop in your syllabus and notes, and StudyWhitney keeps everyt
 
 ## Why I built this
 
-Keeping track of college classes means juggling a syllabus PDF, a calendar, notes in one app and old exams in another, and finding out about a test too late. I wanted one place that keeps all of it organized and actually helps me study, and a cat on my screen is a lot harder to ignore than a calendar alert.
+Keeping track of college classes means juggling a syllabus PDF, a calendar, notes in one app and old exams in another, and finding out about a test too late. I wanted one place that keeps all of it organized and actually helps me study, and a dog on my screen is a lot harder to ignore than a calendar alert.
 
 It also let me build something real from start to finish, beyond class assignments:
 
@@ -41,6 +41,18 @@ Whitney sits just above your Dock while you work. She blinks, wanders around, an
 
 **Get practice exams.** Upload an old exam and get a brand-new one just like it, or ask for questions on certain textbook sections. Print the questions to practice, then check your answers with the separate answer key. *This part needs a Claude API key, which costs a few cents per exam.*
 
+## Studying Chinese
+
+Chinese classes get their own set of tools, built around your vocab list:
+
+- **Flashcards** with a short example sentence for every word, read aloud in a natural voice. Mark each word *Struggling* or *I know it*, and practice just the ones you're struggling with.
+- **Sentence practice:** read a sentence and tap any word to see its meaning, or build the sentence yourself from shuffled word tiles.
+- **Graded stories** that each use 10 of your words and get harder level by level, with questions to check you understood.
+- **Practice midterms** in the same 9 parts as the real one: listening, pinyin, characters, matching, meanings, translation and writing. Do them in the app or print them with an answer key.
+- **⚔️ Quest,** a pixel-art dungeon game: your knight fights monsters by picking the right Chinese word, and each floor's boss is a story dragon. Clear floors to earn stars, XP and new ranks.
+
+You can zoom the whole app with ⌘+ and ⌘−.
+
 ## Try it
 
 You'll need a Mac running macOS 13 or newer, and [Node.js](https://nodejs.org) (free).
@@ -59,7 +71,7 @@ Just want a look? Open `studywhitney.html` in your browser to see the idea and t
 ## Coming next
 
 - A phone app, so reminders reach you anywhere
-- Whitney reading your notes for you and making flashcards
+- Whitney reading your notes for you and making flashcards for every class
 - Turning practice exams into quizzes
 
 ---
